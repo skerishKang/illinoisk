@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>월요일 전략 — 반도체 종목 분석</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="logo"><div class="logo-icon">M</div>월요일 <span>전략</span></div>
+  <nav>
+    <a href="index.html">종목리스트</a>
+    <a href="monday-strategy.html" class="active">월요일전략</a>
+    <a href="process.html">반도체공정</a>
+    <a href="valuechain.html">밸류체인</a>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="hero">
+    <h1>📊 월요일 전략 리포트</h1>
+    <p id="strategy-meta">2026-06-05(금) 장 마감 기준 · <span id="stock-count"></span>개 종목</p>
+  </div>
+
+  <!-- 시장 전략 섹션 -->
+  <div class="market-strategy-section">
+    <h2 class="section-title">🌍 시장 전망</h2>
+    <div class="strategy-comparison">
+      <div class="analysis-card ultra-card">
+        <div class="card-header">
+          <span class="badge badge-ultra">🟦 울트라 분석</span>
+          <span class="badge badge-action" id="market-action-badge">관망</span>
+        </div>
+        <div class="card-body" id="market-ultra">
+          로딩 중...
+        </div>
+      </div>
+      <div class="analysis-card deepseek-card">
+        <div class="card-header">
+          <span class="badge badge-deepseek">🟩 Hermes 딥시크</span>
+          <span class="badge badge-agreement" id="market-agreement-badge">검토</span>
+        </div>
+        <div class="card-body" id="market-deepseek">
+          로딩 중...
+        </div>
+        <div class="key-indicators" id="market-indicators">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🏆 ELO 랭킹 TOP 3 -->
+  <div class="elo-ranking-section">
+    <h2 class="section-title">🏆 ELO 랭킹 TOP 3</h2>
+    <div id="elo-ranking"></div>
+  </div>
+
+  <!-- 검색/필터 -->
+  <div class="search-row">
+    <input type="text" id="search-input" placeholder="종목명, 티커 검색..." oninput="handleSearch()">
+    <select id="action-filter" onchange="handleSearch()">
+      <option value="">전체 액션</option>
+      <option value="딥바잉">🟣 딥바잉</option>
+      <option value="분할매수">🟢 분할매수</option>
+      <option value="관망">🟡 관망</option>
+      <option value="익절">🔴 익절</option>
+    </select>
+    <select id="agreement-filter" onchange="handleSearch()">
+      <option value="">전체 동의도</option>
+      <option value="동의">🟢 동의</option>
+      <option value="부분 동의">🟡 부분 동의</option>
+      <option value="반박">🔴 반박</option>
+    </select>
+  </div>
+
+  <!-- 종목 전략 리스트 -->
+  <div id="strategy-list"></div>
+</div>
+
+<script src="js/app.js"></script>
+<script src="js/strategy-data.js"></script>
+<script src="js/strategy.js"></script>
+<script>
+renderStrategyPage();
+</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>종목 상세 정보</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="logo">반도체 <span>종목분석</span></div>
+  <nav>
+    <a href="index.html">종목리스트</a>
+    <a href="process.html">반도체공정</a>
+    <a href="valuechain.html">밸류체인</a>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+  </nav>
+</header>
+
+<div class="container">
+  <button class="back-btn" onclick="history.back()">← 뒤로가기</button>
+  <div id="stock-detail"></div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+function renderDetail() {
+  const name = getParam('name');
+  const stock = STOCKS.find(s => s.name === name);
+  const container = document.getElementById('stock-detail');
+  
+  if (!stock) {
+    container.innerHTML = '<div class="card"><h2>종목을 찾을 수 없습니다</h2><p>URL 파라미터 name=종목명 을 확인하세요.</p></div>';
+    return;
+  }
+  
+  document.title = `${stock.name} (${stock.ticker}) — 종목 상세`;
+  
+  container.innerHTML = `
+    <div class="card">
+      <h2>${stock.name} <span class="tag">${stock.category}</span> <span style="font-weight:normal;font-size:14px;color:var(--text2)">(${stock.ticker})</span></h2>
+      
+      <div class="grid-3 stat-grid">
+        <div class="stat">
+          <div class="label">매출액</div>
+          <div class="value${isNegative(stock.revenue) ? ' down' : ''}">${stock.revenue || '—'}</div>
+          <div class="unit">2026년 1분기</div>
+        </div>
+        <div class="stat">
+          <div class="label">영업이익</div>
+          <div class="value${isNegative(stock.op_profit) ? ' down' : ''}">${stock.op_profit || '—'}</div>
+          <div class="unit">2026년 1분기</div>
+        </div>
+        <div class="stat">
+          <div class="label">순이익</div>
+          <div class="value${isNegative(stock.net_income) ? ' down' : ''}">${stock.net_income || '—'}</div>
+          <div class="unit">2026년 1분기</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="grid-2">
+      <div class="card">
+        <h2>사업 개요</h2>
+        <p style="line-height:1.8;font-size:14px">${stock.biz_desc || '정보 없음'}</p>
+      </div>
+      
+      <div class="card">
+        <h2>재무 상태표</h2>
+        <div class="detail-grid">
+          <div class="detail-item"><span class="label">매출액</span><span class="value${isNegative(stock.revenue) ? ' negative' : ''}">${stock.revenue || '—'}</span></div>
+          <div class="detail-item"><span class="label">영업이익</span><span class="value${isNegative(stock.op_profit) ? ' negative' : ''}">${stock.op_profit || '—'}</span></div>
+          <div class="detail-item"><span class="label">분기순이익</span><span class="value${isNegative(stock.net_income) ? ' negative' : ''}">${stock.net_income || '—'}</span></div>
+          <div class="detail-item"><span class="label">EPS</span><span class="value${isNegative(stock.eps) ? ' negative' : ''}">${stock.eps || '—'}</span></div>
+          <div class="detail-item"><span class="label">자산총계</span><span class="value">${stock.assets || '—'}</span></div>
+          <div class="detail-item"><span class="label">부채총계</span><span class="value">${stock.debt || '—'}</span></div>
+          <div class="detail-item"><span class="label">자본총계</span><span class="value">${stock.equity || '—'}</span></div>
+          <div class="detail-item"><span class="label">현금성자산</span><span class="value">${stock.cash || '—'}</span></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2>관련 종목</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>종목명</th><th>코드</th><th>업종</th><th>매출액</th><th>영업이익</th></tr></thead>
+          <tbody id="related-table"></tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  
+  // Related stocks (same category, exclude current)
+  const related = STOCKS
+    .filter(s => s.category === stock.category && s.name !== stock.name)
+    .slice(0, 5);
+  
+  const tbody = document.getElementById('related-table');
+  related.forEach(s => {
+    const tr = document.createElement('tr');
+    tr.addEventListener('click', () => { window.location.href = `stock.html?name=${encodeURIComponent(s.name)}`; });
+    tr.innerHTML = `<td class="name-cell">${s.name}</td><td>${s.ticker}</td><td><span class="tag">${s.category}</span></td><td>${s.revenue || '—'}</td><td>${s.op_profit || '—'}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+renderDetail();
+</script>
+</body>
+</html>

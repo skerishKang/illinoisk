@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>반도체 밸류체인</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+#valuechain-svg { width: 100%; height: 600px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); margin-bottom: 24px; }
+.legend { display: flex; gap: 24px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+.vc-header { text-align: center; margin-bottom: 24px; }
+.vc-header h1 { margin-bottom: 8px; }
+.vc-header p { color: var(--text2); }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">반도체 <span>종목분석</span></div>
+  <nav>
+    <a href="index.html">종목리스트</a>
+    <a href="process.html">반도체공정</a>
+    <a href="valuechain.html">밸류체인</a>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="vc-header">
+    <h1>🔗 반도체 산업 밸류체인</h1>
+    <p>장비사 · 소재사 → 고객사(Fab) → 후공정(OSAT/PCB) → 검사 · 테스트</p>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#2d6bff"></div> 장비/소재/후공정</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div> 고객사(Fab)</div>
+  </div>
+
+  <svg id="valuechain-svg"></svg>
+
+  <div class="card" style="margin-top:0">
+    <h2>밸류체인 설명</h2>
+    <div class="grid-3" style="margin-top: 16px">
+      <div>
+        <h4 style="color:var(--accent)">① 장비/소재 (공급사)</h4>
+        <p style="font-size:13px;line-height:1.7;margin-top:8px">
+          반도체 제조에 필요한 증착, 식각, CMP, 세정 장비와 포토레지스트, 슬러리, 특수가스 등의 소재를 공급합니다.
+          국내 장비사들은 삼성전자와 SK하이닉스의 설비 투자 사이클에 직접적인 영향을 받습니다.
+        </p>
+      </div>
+      <div>
+        <h4 style="color:#f39c12">② 고객사 (Fabrication)</h4>
+        <p style="font-size:13px;line-height:1.7;margin-top:8px">
+          삼성전자와 SK하이닉스는 국내 최대 반도체 메모리 및 파운드리 생산업체입니다.
+          DB하이텍은 아날로그/전력 반도체 파운드리, 제주반도체는 반도체 유통을 담당합니다.
+        </p>
+      </div>
+      <div>
+        <h4 style="color:var(--accent)">③ 후공정/테스트</h4>
+        <p style="font-size:13px;line-height:1.7;margin-top:8px">
+          패키징, PCB 기판, 최종 테스트를 담당합니다. 하나마이크론과 두산테스나는 OSAT
+          (Outsourced Semiconductor Assembly & Test) 역할을 하며, 심텍과 대덕전자는 반도체용
+          PCB 기판을 공급합니다.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="js/chart.js"></script>
+</body>
+</html>

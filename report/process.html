@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>반도체 공정 개요</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.process-detail { display: none; padding: 24px; }
+.process-detail.show { display: block; }
+.process-detail h3 { margin-bottom: 12px; color: var(--accent); }
+.process-detail p { line-height: 1.8; font-size: 14px; margin-bottom: 12px; }
+.process-detail ul { list-style: none; padding: 0; }
+.process-detail li { padding: 8px 12px; margin: 4px 0; background: var(--bg2); border-radius: 6px; cursor: pointer; font-size: 13px; }
+.process-detail li:hover { background: var(--accent); color: #fff; }
+.step-icon-lg { font-size: 48px; display: block; margin-bottom: 8px; }
+.process-step .step-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+.process-step.active .step-sub { color: #ddd; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">반도체 <span>종목분석</span></div>
+  <nav>
+    <a href="index.html">종목리스트</a>
+    <a href="process.html">반도체공정</a>
+    <a href="valuechain.html">밸류체인</a>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+  </nav>
+</header>
+
+<div class="container">
+  <h1 style="margin: 24px 0 8px">🔬 반도체 제조 공정</h1>
+  <p style="color: var(--text2); margin-bottom: 32px">각 공정 단계를 클릭하면 관련 종목을 확인할 수 있습니다.</p>
+
+  <div class="process-flow">
+    <div class="process-step" onclick="showProcess(0)" id="step-0">
+      <span class="step-icon">🏭</span>
+      <div class="step-label">전공정 (Fabrication)</div>
+      <div class="step-sub">웨이퍼 제조 · 증착 · 식각 · 이온주입</div>
+    </div>
+    <span class="process-arrow">→</span>
+    <div class="process-step" onclick="showProcess(1)" id="step-1">
+      <span class="step-icon">🔍</span>
+      <div class="step-label">EDS (Electrical Die Sorting)</div>
+      <div class="step-sub">웨이퍼 상태 전기적 검사</div>
+    </div>
+    <span class="process-arrow">→</span>
+    <div class="process-step" onclick="showProcess(2)" id="step-2">
+      <span class="step-icon">📦</span>
+      <div class="step-label">패키징 (Packaging)</div>
+      <div class="step-sub">절단 · 조립 · 몰딩</div>
+    </div>
+    <span class="process-arrow">→</span>
+    <div class="process-step" onclick="showProcess(3)" id="step-3">
+      <span class="step-icon">✅</span>
+      <div class="step-label">테스트 (Test)</div>
+      <div class="step-sub">최종 불량 검사 · 출하</div>
+    </div>
+  </div>
+
+  <div id="process-detail" class="card process-detail show">
+    <h3>공정 단계를 선택하세요</h3>
+    <p>위 공정 흐름도에서 각 단계를 클릭하면 상세 설명과 관련 종목을 확인할 수 있습니다.</p>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script>
+const processData = [
+  {
+    title: '전공정 (Fabrication)',
+    icon: '🏭',
+    desc: '반도체 전공정은 웨이퍼 위에 회로를 형성하는 핵심 과정입니다. 실리콘 웨이퍼를 준비한 후, 산화(Oxidation), 포토리소그래피(Photolithography), 식각(Etching), 증착(Deposition), 이온주입(Ion Implantation), CMP(Chemical Mechanical Polishing) 등의 공정을 반복하여 미세한 회로 패턴을 형성합니다.',
+    items: [
+      { name: '유진테크', ticker: '084370', desc: 'LPCVD/ALD 증착 장비' },
+      { name: '주성엔지니어링', ticker: '036930', desc: 'ALD/CVD/ALG 증착 장비' },
+      { name: '케이씨텍', ticker: '281820', desc: 'CMP 장비, Wet Cleaning' },
+      { name: '원익IPS', ticker: '240810', desc: '반도체/디스플레이 증착 장비' },
+      { name: 'HPSP', ticker: '403870', desc: '고압 수소 어닐링 장비' },
+      { name: '피에스케이', ticker: '319660', desc: 'Dry Strip/세정 장비' },
+      { name: '테스', ticker: '095610', desc: '반도체 전공정 장비' },
+      { name: '에스에프에이', ticker: '056190', desc: '반도체 장비 및 자동화' },
+      { name: '동진쎄미켐', ticker: '005290', desc: '반도체 공정용 포토레지스트/현상액' },
+      { name: '솔브레인', ticker: '357780', desc: '반도체 공정용 화학 소재' },
+      { name: '이엔에프테크놀로지', ticker: '102710', desc: '반도체/디스플레이용 특수 화학제품' },
+    ]
+  },
+  {
+    title: 'EDS (Electrical Die Sorting)',
+    icon: '🔍',
+    desc: 'EDS(Electrical Die Sorting) 공정은 웨이퍼 상태에서 각 칩(Die)의 전기적 특성을 검사하는 단계입니다. 프로브 카드(Probe Card)를 사용하여 각 칩에 전기적 신호를 인가하고, 정상/불량 여부를 판별합니다. 불량 칩은 마킹되어 이후 공정에서 제외됩니다.',
+    items: [
+      { name: 'ISC', ticker: '095340', desc: '테스트 소켓 (시스템반도체/메모리)' },
+      { name: '리노공업', ticker: '058470', desc: '검사용 프로브 핀(Spring Contact Probe)' },
+      { name: '에스앤에스텍', ticker: '101490', desc: '반도체 마스크(Reticle)' },
+      { name: '와이씨', ticker: '232140', desc: '반도체 검사 장비' },
+    ]
+  },
+  {
+    title: '패키징 (Packaging)',
+    icon: '📦',
+    desc: '패키징 공정은 웨이퍼에서 칩을 절단(Sawing)한 후, 기판(Substrate)이나 리드프레임에 부착(Die Attach)하고, 와이어 본딩(Wire Bonding) 또는 범프(Bump) 형성으로 전기적 연결을 합니다. 이후 몰딩(Molding)으로 외부 환경으로부터 보호하고, 최종적으로 리드 트리밍(Trim/Form) 공정을 거칩니다.',
+    items: [
+      { name: '하나마이크론', ticker: '067310', desc: '반도체 후공정(조립/패키징)' },
+      { name: 'SFA반도체', ticker: '036540', desc: '반도체 조립 및 TEST' },
+      { name: '심텍', ticker: '222800', desc: 'PCB(Module PCB/Package Substrate)' },
+      { name: '대덕전자', ticker: '353200', desc: 'PCB(반도체용 기판)' },
+      { name: '이수페타시스', ticker: '007660', desc: 'PCB(고다층/반도체용 기판)' },
+    ]
+  },
+  {
+    title: '테스트 (Test)',
+    icon: '✅',
+    desc: '최종 테스트(Final Test) 공정은 패키징이 완료된 반도체 칩의 최종 전기적 특성과 성능을 검증하는 단계입니다. 번인 테스트(Burn-in Test), 핸들러(Handler)를 이용한 온도 조건별 테스트, EDS에서 발견하지 못한 불량을 최종 선별합니다.',
+    items: [
+      { name: '두산테스나', ticker: '131970', desc: '시스템 반도체 테스트 서비스' },
+      { name: 'GST', ticker: '083450', desc: '반도체 검사 장비(비전 검사)' },
+      { name: '고영', ticker: '098460', desc: '3D 검사 장비' },
+    ]
+  }
+];
+
+function showProcess(index) {
+  // Update active step
+  document.querySelectorAll('.process-step').forEach((el, i) => {
+    el.classList.toggle('active', i === index);
+  });
+  
+  const data = processData[index];
+  const detail = document.getElementById('process-detail');
+  
+  let itemsHtml = '';
+  data.items.forEach(item => {
+    itemsHtml += `<li onclick="window.location.href='stock.html?name=${encodeURIComponent(item.name)}'">
+      <strong>${item.name}</strong> (${item.ticker}) — ${item.desc}
+    </li>`;
+  });
+  
+  detail.innerHTML = `
+    <h3>${data.icon} ${data.title}</h3>
+    <p>${data.desc}</p>
+    <h4 style="margin: 16px 0 8px">관련 종목</h4>
+    <ul>${itemsHtml}</ul>
+  `;
+  detail.classList.add('show');
+}
+
+// Show first step by default
+showProcess(0);
+</script>
+</body>
+</html>

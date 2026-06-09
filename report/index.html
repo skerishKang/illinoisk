@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>반도체 종목 분석 리포트</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">S</div>
+    반도체 <span>종목분석</span>
+  </div>
+  <nav>
+    <a href="index.html" class="active">종목리스트</a>
+    <a href="process.html">반도체공정</a>
+    <a href="monday-strategy.html">월요일전략</a>
+    <a href="valuechain.html">밸류체인</a>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="hero">
+    <h1>📊 반도체 종목 분석 리포트</h1>
+    <p>2026년 1분기 분기보고서 기준 · <span class="stock-count" id="stock-count"></span>개 종목</p>
+  </div>
+
+  <div class="search-row">
+    <input type="text" id="search-input" placeholder="종목명, 코드, 업종 검색..." oninput="handleSearch()">
+    <select id="category-filter" onchange="handleSearch()">
+      <option value="">전체 업종</option>
+      <option value="장비">장비</option>
+      <option value="소재">소재</option>
+      <option value="PCB">PCB</option>
+      <option value="소켓">소켓</option>
+      <option value="파운드리">파운드리</option>
+      <option value="패키징테스트">패키징테스트</option>
+      <option value="테스트서비스">테스트서비스</option>
+      <option value="조립검사">조립검사</option>
+      <option value="검사장비">검사장비</option>
+      <option value="3D검사">3D검사</option>
+      <option value="마스크">마스크</option>
+      <option value="유통">유통</option>
+      <option value="보안">보안</option>
+    </select>
+  </div>
+
+  <div id="stock-table"></div>
+</div>
+
+<script src="js/data.js?v=2"></script>
+<script src="js/app.js?v=2"></script>
+<script>
+document.getElementById('stock-count').textContent = STOCKS.length;
+buildTable(STOCKS, 'stock-table', 'revenue', -1);
+
+function handleSearch() {
+  const query = document.getElementById('search-input').value;
+  const category = document.getElementById('category-filter').value;
+  filterTable(query, category);
+}
+</script>
+</body>
+</html>

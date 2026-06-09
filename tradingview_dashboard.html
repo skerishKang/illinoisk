@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>강철매매 — 실시간 해외시장</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1e222d; font-family:-apple-system, BlinkMacSystemFont, sans-serif; padding:16px; color:#ccc; }
+h1 { color:#fff; font-size:18px; margin-bottom:12px; }
+h2 { color:#888; font-size:13px; margin:20px 0 8px 8px; text-transform:uppercase; letter-spacing:1px; }
+.grid-3 { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
+.grid-2 { display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; }
+.widget-container { background:#131722; border-radius:8px; overflow:hidden; border:1px solid #2a2e39; }
+.widget-container iframe { width:100%; height:320px; border:none; }
+.subtitle { color:#666; font-size:11px; margin-top:6px; text-align:center; }
+.badge { display:inline-block; background:#2a2e39; color:#888; padding:2px 8px; border-radius:4px; font-size:10px; margin-bottom:8px; }
+</style>
+</head>
+<body>
+<h1>🌍 강철매매 해외시장 실시간</h1>
+<span class="badge">TradingView 위젯</span>
+<span class="badge">실시간 업데이트</span>
+
+<h2>🇺🇸 미국 선물</h2>
+<div class="grid-3">
+  <div class="widget-container">
+    <div class="tradingview-widget-container">
+      <div id="tv-nasdaq"></div>
+      <script>new TradingView.widget({container_id:"tv-nasdaq",symbol:"CME_MINI:NQ1!",interval:"D",width:"100%",height:320,theme:"dark",style:1,locale:"ko",toolbar_bg:"#131722",enable_publishing:false,hide_top_toolbar:true,hide_legend:true,save_image:false,studies:[]});</script>
+    </div>
+  </div>
+  <div class="widget-container">
+    <div class="tradingview-widget-container">
+      <div id="tv-sp"></div>
+      <script>new TradingView.widget({container_id:"tv-sp",symbol:"CME_MINI:ES1!",interval:"D",width:"100%",height:320,theme:"dark",style:1,locale:"ko",toolbar_bg:"#131722",enable_publishing:false,hide_top_toolbar:true,hide_legend:true,save_image:false,studies:[]});</script>
+    </div>
+  </div>
+  <div class="widget-container">
+    <div class="tradingview-widget-container">
+      <div id="tv-dow"></div>
+      <script>new TradingView.widget({container_id:"tv-dow",symbol:"CME_MINI:YM1!",interval:"D",width:"100%",height:320,theme:"dark",style:1,locale:"ko",toolbar_bg:"#131722",enable_publishing:false,hide_top_toolbar:true,hide_legend:true,save_image:false,studies:[]});</script>
+    </div>
+  </div>
+</div>
+
+<h2>🌏 아시아 + 원자재 + VIX</h2>
+<div class="grid-3">
+  <div class="widget-container">
+    <div class="tradingview-widget-container">
+      <div id="tv-nikkei"></div>
+      <script>new TradingView.widget({container_id:"tv-nikkei",symbol:"TSE:NI225",interval:"D",width:"100%",height:320,theme:"dark",style:1,locale:"ko",toolbar_bg:"#131722",enable_publishing:false,hide_top_toolbar:true,hide_legend:true,save_image:false,studies:[]});</script>
+    </div>
+  </div>
+  <div class="widget-container">
+    <div class="tradingview-widget-container">
+      <div id="tv-hsi"></div>
+      <script>new TradingView.widget({container_id:"tv-hsi",symbol:"INDEX:HSI",interval:"D",width:"100%",height:320,theme:"dark",style:1,locale:"ko",toolbar_bg:"#131722",enable_publishing:false,hide_top_toolbar:true,hide_legend:true,save_image:false,studies:[]});</script>
+    </div>
+  </div>
+  <div class="widget-container">
+    <div class="tradingview-widget-container">
+      <div id="tv-vix"></div>
+      <script>new TradingView.widget({container_id:"tv-vix",symbol:"INDEX:VIX",interval:"D",width:"100%",height:320,theme:"dark",style:1,locale:"ko",toolbar_bg:"#131722",enable_publishing:false,hide_top_toolbar:true,hide_legend:true,save_image:false,studies:[]});</script>
+    </div>
+  </div>
+</div>
+
+<h2>🛢️ 원자재</h2>
+<div class="grid-3">
+  <div class="widget-container">
+    <div class="tradingview-widget-container">
+      <div id="tv-oil"></div>
+      <script>new TradingView.widget({container_id:"tv-oil",symbol:"NYMEX:CL1!",interval:"D",width:"100%",height:320,theme:"dark",style:1,locale:"ko",toolbar_bg:"#131722",enable_publishing:false,hide_top_toolbar:true,hide_legend:true,save_image:false,studies:[]});</script>
+    </div>
+  </div>
+  <div class="widget-container">
+    <div class="tradingview-widget-container">
+      <div id="tv-gold"></div>
+      <script>new TradingView.widget({container_id:"tv-gold",symbol:"COMEX:GC1!",interval:"D",width:"100%",height:320,theme:"dark",style:1,locale:"ko",toolbar_bg:"#131722",enable_publishing:false,hide_top_toolbar:true,hide_legend:true,save_image:false,studies:[]});</script>
+    </div>
+  </div>
+  <div class="widget-container">
+    <div class="tradingview-widget-container">
+      <div id="tv-btc"></div>
+      <script>new TradingView.widget({container_id:"tv-btc",symbol:"BITSTAMP:BTCUSD",interval:"D",width:"100%",height:320,theme:"dark",style:1,locale:"ko",toolbar_bg:"#131722",enable_publishing:false,hide_top_toolbar:true,hide_legend:true,save_image:false,studies:[]});</script>
+    </div>
+  </div>
+</div>
+
+<h2>🇰🇷 KOSPI + 반도체</h2>
+<div class="grid-3">
+  <div class="widget-container">
+    <div class="tradingview-widget-container">
+      <div id="tv-kospi"></div>
+      <script>new TradingView.widget({container_id:"tv-kospi",symbol:"KRX:KOSPI",interval:"D",width:"100%",height:320,theme:"dark",style:1,locale:"ko",toolbar_bg:"#131722",enable_publishing:false,hide_top_toolbar:true,hide_legend:true,save_image:false,studies:[]});</script>
+    </div>
+  </div>
+  <div class="widget-container">
+    <div class="tradingview-widget-container">
+      <div id="tv-soxl"></div>
+      <script>new TradingView.widget({container_id:"tv-soxl",symbol:"NASDAQ:SOXL",interval:"D",width:"100%",height:320,theme:"dark",style:1,locale:"ko",toolbar_bg:"#131722",enable_publishing:false,hide_top_toolbar:true,hide_legend:true,save_image:false,studies:[]});</script>
+    </div>
+  </div>
+  <div class="widget-container">
+    <div class="tradingview-widget-container">
+      <div id="tv-nvda"></div>
+      <script>new TradingView.widget({container_id:"tv-nvda",symbol:"NASDAQ:NVDA",interval:"D",width:"100%",height:320,theme:"dark",style:1,locale:"ko",toolbar_bg:"#131722",enable_publishing:false,hide_top_toolbar:true,hide_legend:true,save_image:false,studies:[]});</script>
+    </div>
+  </div>
+</div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+</body>
+</html>

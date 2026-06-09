@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>illinoisK 대시보드</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  /* header */
+  .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .header h1 { font-size: 24px; }
+  .header h1 span { color: var(--accent); }
+  .header .subtitle { color: var(--text2); font-size: 14px; }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .status-dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* search */
+  .search-box { display: flex; gap: 8px; margin-bottom: 20px; }
+  .search-box input {
+    flex: 1; padding: 10px 16px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--card); color: var(--text); font-size: 14px; outline: none;
+  }
+  .search-box input:focus { border-color: var(--accent); }
+  .search-box input::placeholder { color: var(--text2); }
+  .search-results { position: absolute; z-index: 100; background: var(--card); border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; max-height: 360px; overflow-y: auto; display: none; width: 600px; }
+  .search-results.show { display: block; }
+  .search-item { padding: 10px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .search-item:hover { background: #1c2333; }
+  .search-item .code { color: var(--accent); font-family: monospace; }
+  .search-item .name { font-weight: 600; }
+  .search-item .meta { color: var(--text2); font-size: 12px; }
+  .search-wrapper { position: relative; }
+
+  /* dashboard grid */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+  }
+  .card h2 { font-size: 14px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .card h2 .count { font-size: 12px; background: #1f2937; padding: 2px 10px; border-radius: 12px; color: var(--text2); }
+
+  /* watchlist */
+  .wl-empty { color: var(--text2); text-align: center; padding: 30px; font-size: 14px; }
+  .wl-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer;
+  }
+  .wl-item:last-child { border-bottom: none; }
+  .wl-item .info { flex: 1; }
+  .wl-item .name { font-weight: 600; font-size: 14px; }
+  .wl-item .symbol { color: var(--text2); font-size: 12px; font-family: monospace; margin-left: 6px; }
+  .wl-item .meta { color: var(--text2); font-size: 11px; margin-top: 2px; }
+  .wl-item .reason { color: var(--yellow); font-size: 11px; margin-top: 2px; }
+  .wl-item .del-btn {
+    background: none; border: none; color: var(--text2); cursor: pointer;
+    padding: 4px 8px; border-radius: 6px; font-size: 14px;
+  }
+  .wl-item .del-btn:hover { color: var(--red); background: rgba(248,81,73,0.1); }
+
+  /* market snapshots */
+  .mkt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .mkt-item {
+    padding: 8px 10px; border-radius: 6px; background: #0d1117;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .mkt-item .label { font-size: 12px; color: var(--text2); }
+  .mkt-item .price { font-size: 13px; font-weight: 600; }
+  .mkt-item .up { color: var(--red); }
+  .mkt-item .down { color: var(--accent); }
+  .category-label { font-size: 11px; color: var(--text2); grid-column: 1 / -1; margin-top: 4px; margin-bottom: 2px; padding-left: 4px; }
+
+  /* stock detail modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 440px; width: 90%; }
+  .modal h2 { font-size: 18px; margin-bottom: 16px; }
+  .modal .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+  .modal .row .val { color: var(--text2); }
+  .modal .add-btn {
+    display: block; width: 100%; margin-top: 16px; padding: 10px;
+    background: var(--accent); border: none; border-radius: 8px;
+    color: #fff; font-weight: 600; font-size: 14px; cursor: pointer;
+  }
+  .modal .add-btn:hover { background: #4c96e8; }
+  .modal .add-btn.done { background: var(--green); }
+  .modal .close-btn { float: right; background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; }
+
+  /* news */
+  .news-item { padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .news-item:last-child { border-bottom: none; }
+  .news-item .title { font-size: 13px; font-weight: 500; }
+  .news-item .source { font-size: 11px; color: var(--text2); }
+  .news-item .impact { font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- header -->
+  <div class="header">
+    <div>
+      <h1>📊 <span>illinoisK</span> 대시보드</h1>
+      <div class="subtitle"><span class="status-dot on"></span> Live · DB 연결</div>
+    </div>
+    <div style="font-size:13px; color:var(--text2);">
+      <span id="clock"></span>
+    </div>
+  </div>
+
+  <!-- search -->
+  <div class="search-wrapper">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="🔍 종목명 또는 코드 검색 (예: 삼성, 005930)" autocomplete="off">
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <!-- grid -->
+  <div class="grid">
+    <!-- watchlist -->
+    <div class="card">
+      <h2>⭐ 관심종목 <span class="count" id="wlCount">0</span></h2>
+      <div id="watchlistContent"><div class="wl-empty">로딩 중...</div></div>
+    </div>
+
+    <!-- market snapshots -->
+    <div class="card">
+      <h2>📈 시장 스냅샷 <span id="mktTime"></span></h2>
+      <div class="mkt-grid" id="marketGrid"></div>
+    </div>
+
+    <!-- 뉴스 -->
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>📰 최신 뉴스</h2>
+      <div id="newsContent"><div class="wl-empty">로딩 중...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- modal -->
+<div class="modal-overlay" id="stockModal">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal()">&times;</button>
+    <h2 id="modalTitle">종목 상세</h2>
+    <div id="modalBody"></div>
+    <button class="add-btn" id="modalAddBtn" onclick="modalAdd()">➕ 관심등록</button>
+  </div>
+</div>
+
+<script>
+let currentSearchCode = null;
+let watchlistData = [];
+
+// ── clock ──
+function updateClock() {
+  const now = new Date();
+  const kst = new Date(now.getTime() + 9*60*60*1000);
+  document.getElementById('clock').textContent = 'KST ' + kst.toISOString().slice(0,19).replace('T',' ');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── fetch JSON ──
+async function api(url) {
+  const r = await fetch(url);
+  return r.json();
+}
+
+// ── watchlist 렌더 ──
+async function loadWatchlist() {
+  const data = await api('/api/watchlist');
+  watchlistData = data;
+  const el = document.getElementById('watchlistContent');
+  document.getElementById('wlCount').textContent = data.length;
+  if (!data.length) {
+    el.innerHTML = '<div class="wl-empty">관심등록된 종목이 없습니다.<br>검색창에서 종목을 찾아 추가하세요.</div>';
+    return;
+  }
+  el.innerHTML = data.map(w => `
+    <div class="wl-item" onclick="showStock('${w.symbol}')">
+      <div class="info">
+        <div><span class="name">${w.name}</span><span class="symbol">${w.symbol}</span></div>
+        <div class="meta">${w.market || '-'} · ${w.sector || '-'}</div>
+        ${w.reason ? `<div class="reason">💬 ${w.reason}</div>` : ''}
+      </div>
+      <button class="del-btn" onclick="event.stopPropagation(); removeWL(${w.id})" title="삭제">✕</button>
+    </div>
+  `).join('');
+}
+
+async function removeWL(id) {
+  if (!confirm('삭제할까요?')) return;
+  await api(`/api/remove-watchlist?id=${id}`);
+  loadWatchlist();
+}
+
+// ── 검색 ──
+let searchTimeout;
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  const q = searchInput.value.trim();
+  if (q.length < 1) { searchResults.classList.remove('show'); return; }
+  searchTimeout = setTimeout(async () => {
+    const data = await api(`/api/search?q=${encodeURIComponent(q)}`);
+    if (!data.length) {
+      searchResults.innerHTML = '<div class="search-item" style="color:var(--text2)">결과 없음</div>';
+    } else {
+      searchResults.innerHTML = data.map(s => {
+        const isWL = watchlistData.some(w => w.symbol === s.code);
+        return `<div class="search-item" onclick="showStock('${s.code}')">
+          <div>
+            <span class="name">${s.name}</span>
+            <span class="code">${s.code}</span>
+            <div class="meta">${s.market || '-'} · 시총 ${(s.market_cap_b || 0).toLocaleString()}억</div>
+          </div>
+          <span style="color:${isWL ? 'var(--green)' : 'var(--text2)'};font-size:12px">${isWL ? '⭐ 등록됨' : '➕ 추가'}</span>
+        </div>`;
+      }).join('');
+    }
+    searchResults.classList.add('show');
+  }, 200);
+});
+
+searchInput.addEventListener('blur', () => {
+  setTimeout(() => searchResults.classList.remove('show'), 200);
+});
+searchInput.addEventListener('focus', () => {
+  if (searchResults.innerHTML) searchResults.classList.add('show');
+});
+
+// ── 종목 상세 모달 ──
+async function showStock(code) {
+  searchResults.classList.remove('show');
+  currentSearchCode = code;
+  const s = await api(`/api/stock?code=${code}`);
+  if (!s) { alert('종목 정보 없음'); return; }
+  document.getElementById('modalTitle').textContent = `${s.name} (${s.code})`;
+  const isWL = s.watchlist != null;
+  document.getElementById('modalBody').innerHTML = `
+    <div class="row"><span>시장</span><span class="val">${s.market || '-'}</span></div>
+    <div class="row"><span>현재가</span><span class="val">${(s.price || 0).toLocaleString()}원</span></div>
+    <div class="row"><span>시가총액</span><span class="val">${(s.market_cap_b || 0).toLocaleString()}억</span></div>
+    <div class="row"><span>발행주식</span><span class="val">${(s.shares || 0).toLocaleString()}주</span></div>
+    <div class="row"><span>상장일</span><span class="val">${s.listed_date || '-'}</span></div>
+    <div class="row"><span>증거금율</span><span class="val">${s.margin_rate || '-'}</span></div>
+    ${isWL ? `<div class="row" style="color:var(--green)">⭐ 관심등록 완료 (${s.watchlist.reason ? '💬 '+s.watchlist.reason : ''})</div>` : ''}
+  `;
+  const btn = document.getElementById('modalAddBtn');
+  if (isWL) {
+    btn.textContent = '✅ 이미 관심등록됨';
+    btn.className = 'add-btn done';
+    btn.disabled = true;
+  } else {
+    btn.textContent = '➕ 관심등록';
+    btn.className = 'add-btn';
+    btn.disabled = false;
+  }
+  document.getElementById('stockModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('stockModal').classList.remove('show');
+}
+
+async function modalAdd() {
+  if (!currentSearchCode) return;
+  const reason = prompt('추가 이유 (선택사항):');
+  const r = await api(`/api/add-watchlist?symbol=${currentSearchCode}${reason ? '&reason='+encodeURIComponent(reason) : ''}`);
+  if (r.error) { alert(r.error); return; }
+  document.getElementById('modalAddBtn').textContent = `✅ ${r.name} 등록완료!`;
+  document.getElementById('modalAddBtn').className = 'add-btn done';
+  loadWatchlist();
+}
+
+// ── 시장 스냅샷 ──
+async function loadMarket() {
+  const data = await api('/api/market-snapshots');
+  const el = document.getElementById('marketGrid');
+  if (data.length && data[0].captured_kst) {
+    document.getElementById('mktTime').textContent = data[0].captured_kst.slice(5,16);
+  }
+  const cats = {};
+  data.forEach(s => {
+    if (!cats[s.category]) cats[s.category] = [];
+    cats[s.category].push(s);
+  });
+  let html = '';
+  for (const [cat, items] of Object.entries(cats)) {
+    html += `<div class="category-label">${cat}</div>`;
+    items.forEach(s => {
+      const cls = (s.change_pct || 0) >= 0 ? 'up' : 'down';
+      const arrow = (s.change_pct || 0) >= 0 ? '▲' : '▼';
+      html += `<div class="mkt-item">
+        <div>
+          <div class="label">${s.name}</div>
+        </div>
+        <div>
+          <div class="price ${cls}">${(s.price || 0).toLocaleString()}</div>
+          <div style="font-size:11px;text-align:right" class="${cls}">${arrow} ${Math.abs(s.change_pct || 0).toFixed(2)}%</div>
+        </div>
+      </div>`;
+    });
+  }
+  el.innerHTML = html;
+}
+
+// ── 뉴스 ──
+async function loadNews() {
+  const data = await api('/api/news');
+  const el = document.getElementById('newsContent');
+  if (!data.length) { el.innerHTML = '<div class="wl-empty">뉴스 없음</div>'; return; }
+  el.innerHTML = data.map(n => `
+    <div class="news-item">
+      <div class="title">${n.title}</div>
+      <div>
+        <span class="source">${n.source || ''} · ${n.published_at || ''}</span>
+        ${n.market_impact ? `<span class="impact" style="color:var(--yellow);margin-left:8px">📊 ${n.market_impact}</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── init ──
+loadWatchlist();
+loadMarket();
+loadNews();
+setInterval(loadMarket, 60000);  // 1분마다 리프레시
+setInterval(loadWatchlist, 30000);
+</script>
+</body>
+</html>
