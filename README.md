@@ -1,11 +1,15 @@
-# illinoisK Trading System
+# illinoisK
 
-`illinoisK` is a repository for organizing trading research notes, watchlists, daily market logs, strategy notes, data-source records, and agent operating rules.
+Repository for market notes, watchlists, daily review logs, strategy notes, and agent rules.
 
-The goal is not automated trading. The goal is to keep evidence, reduce unsupported interpretation, and make the review process repeatable.
+## Purpose
 
-## Core principles
+This repository keeps trading research organized. It is not an automated trading system.
 
-- Work from verifiable data.
-- Avoid unsupported claims.
--
+## Main files
+
+- `INDEX.md`: entry point for agents.
+- `AGENTS.md`: operating rules for agents.
+- `docs/`: project policies and templates.
+- `watchlist/`: stock watchlist notes.
+- `daily-logs/`: daily review records.
