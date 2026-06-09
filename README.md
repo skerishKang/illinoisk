@@ -1,21 +1,11 @@
 # illinoisK Trading System
 
-`illinoisK`는 주식 트레이딩 판단을 위한 관심종목, 일별 매매 로그, 전략 노트, 데이터 출처, 에이전트 운영 규칙을 한 곳에서 관리하는 저장소입니다.
+`illinoisK` is a repository for organizing trading research notes, watchlists, daily market logs, strategy notes, data-source records, and agent operating rules.
 
-이 저장소의 목적은 자동 매매가 아니라 **판단 근거를 남기고, 반복 가능한 매매 루틴을 만들고, 근거 없는 해석을 줄이는 것**입니다.
+The goal is not automated trading. The goal is to keep evidence, reduce unsupported interpretation, and make the review process repeatable.
 
-## 핵심 원칙
+## Core principles
 
-1. 데이터 기반으로 판단합니다.
-2. 근거 없는 추측을 금지합니다.
-3. KOSPI와 KOSDAQ을 반드시 구분합니다.
-4. RSI, 수급, 거래대금, 섹터 흐름, 손절 기준을 함께 봅니다.
-5. 3~5K 손절 원칙을 기본 위험관리 기준으로 둡니다.
-6. 매수·매도 판단은 기록으로 남깁니다.
-7. 에이전트는 투자 결정을 대신하지 않고, 판단 자료를 정리합니다.
-
-## 저장소 구조
-
-```text
-.
-├── INDEX
+1. Work from verifiable data.
+2. Avoid unsupported claims.
+3. Separate
