@@ -6,6 +6,6 @@ The goal is not automated trading. The goal is to keep evidence, reduce unsuppor
 
 ## Core principles
 
-1. Work from verifiable data.
-2. Avoid unsupported claims.
-3. Separate
+- Work from verifiable data.
+- Avoid unsupported claims.
+-
