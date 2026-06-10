@@ -11,37 +11,13 @@ import sys
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(BASE, "scripts"))
 
+from fixture_snapshot_builder import build_fixture_snapshot
 from handoff_orchestrator import build_handoff_from_message
 from quick_handoff_packet import FUTURES_UNAVAILABLE_NOTICE
 
 
 def fixture_snapshot(symbol="HPSP"):
-    return {
-        "as_of": "2026-06-11T10:35:00+09:00",
-        "symbol": symbol,
-        "quote": {
-            "current_price": 41250,
-            "previous_close_change_pct": -1.2,
-            "open_or_candle_change_pct": 0.4,
-            "high_to_current_pct": -2.1,
-            "low_to_current_pct": 1.8,
-            "volume": 1250000,
-            "source": "fixture",
-        },
-        "indicators": {
-            "rsi_1m": 29.8,
-            "rsi_5m": 34.2,
-            "rsi_30m": 41.0,
-            "bb_5m_pct": 0.18,
-            "bb_30m_pct": 0.42,
-            "moving_average_state": "below_short_ma",
-        },
-        "flow": {
-            "brokerage_net_quantity_source": "ka10002_or_unavailable",
-            "brokerage_net_quantity": None,
-            "futures_foreign_institutional_flow": "unavailable",
-        },
-    }
+    return build_fixture_snapshot(symbol=symbol)
 
 
 def test_orchestrator_routes_recent_symbol_followup():
@@ -142,6 +118,27 @@ def test_orchestrator_to_dict_shape():
     return True
 
 
+def test_orchestrator_rejects_invalid_snapshot():
+    print("\n테스트 6: invalid snapshot rejected before packet")
+    snapshot = fixture_snapshot()
+    del snapshot["quote"]["current_price"]
+
+    try:
+        build_handoff_from_message(
+            {
+                "message": "신호 왔어?",
+                "active_symbol": "HPSP",
+                "snapshot": snapshot,
+            }
+        )
+    except ValueError as exc:
+        assert "missing quote.current_price" in str(exc), str(exc)
+        print("  ✓ invalid snapshot rejected")
+        return True
+
+    raise AssertionError("expected snapshot validation error")
+
+
 def run_all_tests():
     print("=" * 60)
     print("handoff_orchestrator.py fixture tests")
@@ -153,6 +150,7 @@ def run_all_tests():
         test_orchestrator_uses_snapshot_symbol_when_route_has_no_symbol,
         test_orchestrator_preserves_unavailable_flow_notice,
         test_orchestrator_to_dict_shape,
+        test_orchestrator_rejects_invalid_snapshot,
     ]
 
     passed = 0
