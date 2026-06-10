@@ -18,6 +18,7 @@ Use this page as the first stop after reading the root entry files:
 | `trading-analysis-quality-guardrails.md` | Preparing trading analysis, intraday answers, close summaries, or postmarket reviews. |
 | `discord-trading-skill-trigger-architecture.md` | Designing Discord natural-language trading triggers and local snapshot flow. |
 | `chatgpt-handoff-packet-contract.md` | Building ChatGPT web review packets from Discord trading context. |
+| `local-discord-handoff-implementation-plan.md` | Planning the local Discord handoff implementation before code changes. |
 | `../handoff/README.md` | Saving ChatGPT review handoff packets and related chart references. |
 | `../report/README.md` | Creating or editing close summaries and postmarket reviews. |
 
@@ -32,7 +33,7 @@ For normal repository work:
 
 For trading analysis or market reports, always include `docs/trading-analysis-quality-guardrails.md` before making conclusions.
 
-For Discord trading assistant or ChatGPT web review handoff work, include `docs/discord-trading-skill-trigger-architecture.md` and `docs/chatgpt-handoff-packet-contract.md`.
+For Discord trading assistant or ChatGPT web review handoff work, include `docs/discord-trading-skill-trigger-architecture.md`, `docs/chatgpt-handoff-packet-contract.md`, and `docs/local-discord-handoff-implementation-plan.md`.
 
 For persistent handoff packet work, also include `handoff/README.md` before creating or editing files under `handoff/`.
 
