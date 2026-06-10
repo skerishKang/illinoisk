@@ -88,6 +88,10 @@ def build_handoff_from_message(
             "snapshot": snapshot,
             "signal_state": signal_state,
             "active_strategy": active_strategy,
+            "signal_supporting_factors": list(signal_result.supporting_factors),
+            "signal_conflicting_factors": list(signal_result.conflicting_factors),
+            "signal_near_factors": list(signal_result.near_factors),
+            "signal_missing_data": list(signal_result.missing_data),
             "recent_discord_excerpt": list(data.recent_messages),
             "current_model_answer": data.current_model_answer,
         }
