@@ -14,6 +14,7 @@ It is not an automated trading system and should not execute live market actions
 - `docs/repository-structure.md`: repository layout and top-level directory roles.
 - `docs/local-regression-checks.md`: local verification workflow.
 - `docs/conversation-sync-usage.md`: conversation archive sync workflow.
+- `docs/trading-analysis-quality-guardrails.md`: trading analysis error-prevention rules.
 
 ## Main directories
 
@@ -62,6 +63,7 @@ python3 scripts/save_conversation.py sync --keyword "리노공업"
 2. Use `docs/repository-structure.md` to check directory roles and Git policy.
 3. Use `docs/local-regression-checks.md` before changing files.
 4. Use `docs/conversation-sync-usage.md` after conversation archive edits.
-5. Keep default checks local-only.
-6. Do not require Kiwoom credentials, network access, or live market API calls for default tests.
-7. Do not substitute unavailable futures investor data with unrelated stock foreign flow or program-trading data.
+5. Use `docs/trading-analysis-quality-guardrails.md` before trading analysis or reports.
+6. Keep default checks local-only.
+7. Do not require Kiwoom credentials, network access, or live market API calls for default tests.
+8. Do not substitute unavailable futures investor data with unrelated stock foreign flow or program-trading data.
