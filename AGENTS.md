@@ -23,7 +23,8 @@ It is not an automated trading system. Default agent behavior must not execute l
 7. `report/README.md` before creating or editing market reports
 8. `docs/discord-trading-skill-trigger-architecture.md` before Discord trading assistant work
 9. `docs/chatgpt-handoff-packet-contract.md` before ChatGPT web handoff work
-10. `docs/conversation-sync-usage.md` when editing conversation archives
+10. `handoff/README.md` before creating or editing persistent handoff packets
+11. `docs/conversation-sync-usage.md` when editing conversation archives
 
 ## Default local verification
 
@@ -84,6 +85,10 @@ Before Discord trading assistant or ChatGPT handoff work, use:
 
 - `docs/discord-trading-skill-trigger-architecture.md`
 - `docs/chatgpt-handoff-packet-contract.md`
+
+Before creating or editing persistent handoff packets, also use:
+
+- `handoff/README.md`
 
 Natural-language triggers should be preferred over slash-command-only operation. Keep local market snapshots local-only and do not make default tests depend on Discord, Kiwoom, OpenAI, network, or live market credentials.
 
