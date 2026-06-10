@@ -1,20 +1,65 @@
-# Stock Trading Index
+# illinoisK Index
 
-## 파일 구조
-- **관심종목** → `~/stock-trading/watchlist/` (섹터별 분리)
-- **일별 로그** → `~/stock-trading/daily-logs/YYYY-MM-DD.md`
-- **전략 노트** → `~/stock-trading/strategies/`
-- **과거 대화 검색** → `session_search(query="...")` (FTS5 인덱싱)
+## Repository purpose
 
-## 빠른 참조
-- **User**: Chulwon Kang, 존댓말, 직설적
-- **매매**: RSI 기반 시스템 + 수급 분석, 3~5K 손절
-- **규모**: 일 손익 천만원대, 하루 2~3회 이상 거래
-- **핵심 원칙**: 데이터 기반, 추측 금지 (근거 없는 해석 X), KOSPI/KOSDAQ 구분
-- **가장 좋아하는 종목**: 이오테크닉스 (039030)
+This repository organizes market notes, watchlists, daily review logs, strategy notes, conversation archives, and agent operating rules.
 
-## 사용 방법
-1. 에이전트가 INDEX.md 먼저 로드
-2. 필요시 watchlist/ 내 파일 추가 로드
-3. 과거 대화는 session_search()로 검색
-4. 일별 로그는 daily-logs/에서 확인
+It is not an automated trading system and should not execute live market actions by default.
+
+## Entry points
+
+- `README.md`: repository overview and default commands.
+- `INDEX.md`: quick entry point for agents.
+- `AGENTS.md`: operating rules and guardrails for agents.
+- `docs/local-regression-checks.md`: local verification workflow.
+- `docs/conversation-sync-usage.md`: conversation archive sync workflow.
+
+## Main directories
+
+- `conversations/`: Git-tracked Markdown conversation archives.
+- `report/`: market close and postmarket review reports.
+- `strategies/`: strategy notes and system rules.
+- `watchlist/`: stock watchlist notes.
+- `daily-logs/`: daily review records.
+- `scripts/`: local tooling for sync and scan helpers.
+- `tests/`: local regression tests and test runner.
+- `docs/`: project policies, audit notes, and workflow guides.
+
+## Standard local verification
+
+Run before and after small PRs:
+
+```bash
+python3 tests/run_all.py
+```
+
+Expected result:
+
+```text
+결과: 3개 통과, 0개 실패
+```
+
+## Conversation archive sync
+
+Markdown files are the source archive. The SQLite DB is local and regenerable.
+
+Default sync command:
+
+```bash
+python3 scripts/save_conversation.py sync
+```
+
+Optional keyword check:
+
+```bash
+python3 scripts/save_conversation.py sync --keyword "리노공업"
+```
+
+## Agent workflow
+
+1. Read `README.md`, `INDEX.md`, and `AGENTS.md` first.
+2. Use `docs/local-regression-checks.md` before changing files.
+3. Use `docs/conversation-sync-usage.md` after conversation archive edits.
+4. Keep default checks local-only.
+5. Do not require Kiwoom credentials, network access, or live market API calls for default tests.
+6. Do not substitute unavailable futures investor data with unrelated stock foreign flow or program-trading data.
