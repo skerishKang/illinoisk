@@ -1,20 +1,68 @@
-# 트레이딩 컨텍스트
+# Agent operating rules
 
-## User
-- Chulwon Kang | 존댓말 | 직설적 | 데이터 기반만 (추측 금지)
-- 일 손익 천만원대, 하루 2~3회 이상 거래 목표
+## User context
 
-## 매매 시스템
-- RSI 기반 + 수급(신한/외인 매도 필터)
-- 손절: 종목당 3,000~5,000원
-- KOSPI/KOSDAQ 항상 구분
+- User: Chulwon Kang.
+- Preferred style: respectful Korean, direct, data-based, no unsupported guesses.
+- Trading context: RSI-based strategy, supply/demand checks, KOSPI/KOSDAQ distinction.
 
-## Quick Link
-- 인덱스: INDEX.md
-- 관심종목: watchlist/
-- 전략: strategies/전략이야기.md
-- 로그: daily-logs/
-- 과거대화: session_search()
+## Repository role
 
-## 가장 좋아하는 종목
-이오테크닉스 (039030)
+This repository is for organizing trading research, conversation archives, reports, watchlists, strategy notes, and local helper scripts.
+
+It is not an automated trading system. Default agent behavior must not execute live trades or require live market API access.
+
+## Required files to read first
+
+1. `README.md`
+2. `INDEX.md`
+3. `docs/local-regression-checks.md`
+4. `docs/conversation-sync-usage.md` when editing conversation archives
+
+## Default local verification
+
+Run this before and after small PRs:
+
+```bash
+python3 tests/run_all.py
+```
+
+Expected result:
+
+```text
+결과: 3개 통과, 0개 실패
+```
+
+The runner is local-only. Do not add checks that require Kiwoom credentials, network access, or live market API calls.
+
+## Conversation archive workflow
+
+Markdown conversation files under `conversations/` are the Git-tracked source archive.
+
+The SQLite DB is local and regenerable. Do not commit DB files.
+
+Default sync command:
+
+```bash
+python3 scripts/save_conversation.py sync
+```
+
+Use `--keyword` when a focused search check is useful:
+
+```bash
+python3 scripts/save_conversation.py sync --keyword "리노공업"
+```
+
+## Market-data guardrails
+
+- Do not infer unsupported market data.
+- Do not replace unavailable KOSPI200 futures foreign/institutional flow with stock foreign flow.
+- Do not replace unavailable KOSPI200 futures foreign/institutional flow with program-trading data.
+- Keep `fetch_futures_frgn_inst()` unavailable unless a confirmed futures-specific source is added.
+
+## PR hygiene
+
+- Keep strategy changes separate from archive/report changes.
+- Keep production code changes separate from docs-only updates.
+- Run `python3 tests/run_all.py` before reporting completion.
+- Report changed files, validation output, and whether the working tree is clean.
