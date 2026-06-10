@@ -54,6 +54,16 @@ def fixture_payload():
         },
         "signal_state": "valid_signal",
         "active_strategy": ["RSI_30"],
+        "signal_supporting_factors": [
+            "RSI 30m is at or below 30",
+            "BB 5m pct is near the lower band",
+        ],
+        "signal_conflicting_factors": [],
+        "signal_near_factors": ["RSI 5m is near the oversold threshold"],
+        "signal_missing_data": [
+            "brokerage net quantity unavailable",
+            "futures foreign/institutional flow is unavailable and was not substituted.",
+        ],
         "recent_discord_excerpt": [
             "HPSP 지금 어때?",
             "신호 왔어?",
@@ -69,6 +79,11 @@ def test_packet_contains_required_sections():
     required = [
         "# Quick ChatGPT trading review",
         "## Review request",
+        "## Signal detail",
+        "### Supporting factors",
+        "### Conflicting factors",
+        "### Near factors",
+        "### Missing data",
         "## Trigger route",
         "## Local market snapshot",
         "## Indicators",
@@ -109,8 +124,27 @@ def test_packet_includes_route_and_snapshot_values():
     return True
 
 
+def test_packet_includes_signal_detail_values():
+    print("\n테스트 3: signal detail values")
+    packet = build_quick_handoff_packet(fixture_payload())
+
+    required = [
+        "## Signal detail",
+        "### Supporting factors\n- RSI 30m is at or below 30\n- BB 5m pct is near the lower band",
+        "### Conflicting factors\n- unavailable",
+        "### Near factors\n- RSI 5m is near the oversold threshold",
+        "### Missing data\n- brokerage net quantity unavailable",
+        "- futures foreign/institutional flow is unavailable and was not substituted.",
+    ]
+    for text in required:
+        assert text in packet, f"missing signal detail: {text}"
+
+    print("  ✓ signal details present")
+    return True
+
+
 def test_packet_preserves_unavailable_values():
-    print("\n테스트 3: unavailable values are explicit")
+    print("\n테스트 4: unavailable values are explicit")
     packet = build_quick_handoff_packet(fixture_payload())
 
     assert "- Brokerage net quantity: unavailable" in packet, packet
@@ -122,7 +156,7 @@ def test_packet_preserves_unavailable_values():
 
 
 def test_packet_includes_excerpt_model_answer_and_questions():
-    print("\n테스트 4: excerpt, model answer, and questions")
+    print("\n테스트 5: excerpt, model answer, and questions")
     packet = build_quick_handoff_packet(fixture_payload())
 
     assert "- HPSP 지금 어때?" in packet, packet
@@ -136,17 +170,23 @@ def test_packet_includes_excerpt_model_answer_and_questions():
 
 
 def test_empty_optional_fields_render_unavailable():
-    print("\n테스트 5: empty optional fields render unavailable")
+    print("\n테스트 6: empty optional fields render unavailable")
     payload = fixture_payload()
     payload["active_strategy"] = []
     payload["recent_discord_excerpt"] = []
     payload["current_model_answer"] = None
+    payload["signal_supporting_factors"] = []
+    payload["signal_near_factors"] = []
+    payload["signal_missing_data"] = []
     payload["snapshot"]["quote"]["current_price"] = None
 
     packet = build_quick_handoff_packet(payload)
 
     assert "- Active strategy: unavailable" in packet, packet
     assert "- Current price: unavailable" in packet, packet
+    assert "### Supporting factors\n- unavailable" in packet, packet
+    assert "### Near factors\n- unavailable" in packet, packet
+    assert "### Missing data\n- unavailable" in packet, packet
     assert "## Recent Discord conversation excerpt\n- unavailable" in packet, packet
     assert "## Current model answer\nunavailable" in packet, packet
 
@@ -162,6 +202,7 @@ def run_all_tests():
     tests = [
         test_packet_contains_required_sections,
         test_packet_includes_route_and_snapshot_values,
+        test_packet_includes_signal_detail_values,
         test_packet_preserves_unavailable_values,
         test_packet_includes_excerpt_model_answer_and_questions,
         test_empty_optional_fields_render_unavailable,
