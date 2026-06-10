@@ -16,10 +16,11 @@ It is not an automated trading system. Default agent behavior must not execute l
 
 1. `README.md`
 2. `INDEX.md`
-3. `docs/repository-structure.md`
-4. `docs/local-regression-checks.md`
-5. `docs/trading-analysis-quality-guardrails.md` before trading analysis or reports
-6. `docs/conversation-sync-usage.md` when editing conversation archives
+3. `docs/README.md`
+4. `docs/repository-structure.md`
+5. `docs/local-regression-checks.md`
+6. `docs/trading-analysis-quality-guardrails.md` before trading analysis or reports
+7. `docs/conversation-sync-usage.md` when editing conversation archives
 
 ## Default local verification
 
