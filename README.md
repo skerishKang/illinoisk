@@ -10,6 +10,7 @@ This repository keeps trading research organized. It is not an automated trading
 
 - `INDEX.md`: entry point for agents and quick project context.
 - `AGENTS.md`: operating rules and trading context for agents.
+- `docs/repository-structure.md`: repository layout, directory roles, and Git policy.
 - `docs/`: project policies, audit notes, and workflow guides.
 - `watchlist/`: stock watchlist notes.
 - `daily-logs/`: daily review records.
