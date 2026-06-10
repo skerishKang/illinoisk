@@ -137,11 +137,10 @@ def fetch_program_batch(token):
 
 def fetch_futures_frgn_inst(token):
     """외인/기관 선물(KOSPI200) 순매수 조회 — ka10010 또는 전용 TR 필요"""
-    # TODO: 키움 REST API에서 선물 외인/기관 수급 제공하는 TR 찾으면 구현
-    # 현재 ka10010(프로그램매매동향)은 주식 기준, 선물 전용 TR 별도 필요
-    # OpenAPI+라면: 
-    #   - 선물/옵션 체결요청 (opt50001~)
-    #   - 투자자별 매매동향 (opt10039/opt10040 등)
+    # TODO: 실제 구현 전 docs/kiwoom-futures-investor-tr-audit.md 확인
+    # 후보 TR: opt50004(선물/옵션 투자자별), opt10039/10040(투자자별 매매동향, 선물코드 허용 시)
+    # 현재 ka10010(프로그램매매동향)은 주식 기준, 선물 외인/기관 수급 대용 불가
+    # 확인 전에는 source="unavailable" 유지
     return {"frgn_net": 0, "inst_net": 0, "source": "unavailable"}
 
 
