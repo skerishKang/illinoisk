@@ -20,7 +20,10 @@ It is not an automated trading system. Default agent behavior must not execute l
 4. `docs/repository-structure.md`
 5. `docs/local-regression-checks.md`
 6. `docs/trading-analysis-quality-guardrails.md` before trading analysis or reports
-7. `docs/conversation-sync-usage.md` when editing conversation archives
+7. `report/README.md` before creating or editing market reports
+8. `docs/discord-trading-skill-trigger-architecture.md` before Discord trading assistant work
+9. `docs/chatgpt-handoff-packet-contract.md` before ChatGPT web handoff work
+10. `docs/conversation-sync-usage.md` when editing conversation archives
 
 ## Default local verification
 
@@ -74,6 +77,15 @@ Before trading analysis or market reports, use `docs/trading-analysis-quality-gu
 - Do not erase signed sell quantities with `abs()` when computing net flow.
 - Label whether a price change is previous-close based, open/candle based, high-to-current, or low-to-current.
 - Do not substitute unavailable futures investor flow with unrelated data.
+
+## Discord trading and handoff guardrails
+
+Before Discord trading assistant or ChatGPT handoff work, use:
+
+- `docs/discord-trading-skill-trigger-architecture.md`
+- `docs/chatgpt-handoff-packet-contract.md`
+
+Natural-language triggers should be preferred over slash-command-only operation. Keep local market snapshots local-only and do not make default tests depend on Discord, Kiwoom, OpenAI, network, or live market credentials.
 
 ## PR hygiene
 
