@@ -16,8 +16,10 @@ It is not an automated trading system. Default agent behavior must not execute l
 
 1. `README.md`
 2. `INDEX.md`
-3. `docs/local-regression-checks.md`
-4. `docs/conversation-sync-usage.md` when editing conversation archives
+3. `docs/repository-structure.md`
+4. `docs/local-regression-checks.md`
+5. `docs/trading-analysis-quality-guardrails.md` before trading analysis or reports
+6. `docs/conversation-sync-usage.md` when editing conversation archives
 
 ## Default local verification
 
@@ -59,6 +61,18 @@ python3 scripts/save_conversation.py sync --keyword "리노공업"
 - Do not replace unavailable KOSPI200 futures foreign/institutional flow with stock foreign flow.
 - Do not replace unavailable KOSPI200 futures foreign/institutional flow with program-trading data.
 - Keep `fetch_futures_frgn_inst()` unavailable unless a confirmed futures-specific source is added.
+
+## Trading analysis quality guardrails
+
+Before trading analysis or market reports, use `docs/trading-analysis-quality-guardrails.md`.
+
+- Separate observed data, derived indicators, interpretation, and action support.
+- State the source and basis for important numbers.
+- Do not override a valid RSI 30 signal with vague market fear; present the signal, conflicts, and risk checklist.
+- Use `ka10002` net quantity for brokerage net flow; do not treat `ka10040` ranking as net flow.
+- Do not erase signed sell quantities with `abs()` when computing net flow.
+- Label whether a price change is previous-close based, open/candle based, high-to-current, or low-to-current.
+- Do not substitute unavailable futures investor flow with unrelated data.
 
 ## PR hygiene
 
