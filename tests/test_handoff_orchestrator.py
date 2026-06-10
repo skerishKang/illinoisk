@@ -139,6 +139,54 @@ def test_orchestrator_rejects_invalid_snapshot():
     raise AssertionError("expected snapshot validation error")
 
 
+def test_orchestrator_auto_populates_signal_state_from_snapshot():
+    print("\n테스트 7: auto signal state from fixture snapshot")
+    snapshot = build_fixture_snapshot(
+        indicator_overrides={
+            "rsi_1m": 42.0,
+            "rsi_5m": 38.0,
+            "rsi_30m": 29.7,
+            "bb_5m_pct": 0.18,
+            "bb_30m_pct": 0.40,
+            "moving_average_state": "below_short_ma",
+        },
+        flow_overrides={
+            "brokerage_net_quantity_source": "ka10002_or_unavailable",
+            "brokerage_net_quantity": None,
+            "futures_foreign_institutional_flow": "unavailable",
+        },
+    )
+
+    result = build_handoff_from_message(
+        {
+            "message": "HPSP 신호 왔어?",
+            "snapshot": snapshot,
+        }
+    )
+
+    assert "- Signal state: valid_signal" in result.packet_markdown, result.packet_markdown
+    assert "- Active strategy: RSI_30, BB_5M_LOWER" in result.packet_markdown, result.packet_markdown
+    print("  ✓ signal state computed from local snapshot")
+    return True
+
+
+def test_orchestrator_preserves_explicit_signal_state_override():
+    print("\n테스트 8: explicit signal state override preserved")
+    result = build_handoff_from_message(
+        {
+            "message": "HPSP 신호 왔어?",
+            "snapshot": fixture_snapshot(),
+            "signal_state": "conflicted_signal",
+            "active_strategy": ["MANUAL_REVIEW"],
+        }
+    )
+
+    assert "- Signal state: conflicted_signal" in result.packet_markdown, result.packet_markdown
+    assert "- Active strategy: MANUAL_REVIEW" in result.packet_markdown, result.packet_markdown
+    print("  ✓ explicit signal fields preserved")
+    return True
+
+
 def run_all_tests():
     print("=" * 60)
     print("handoff_orchestrator.py fixture tests")
@@ -151,6 +199,8 @@ def run_all_tests():
         test_orchestrator_preserves_unavailable_flow_notice,
         test_orchestrator_to_dict_shape,
         test_orchestrator_rejects_invalid_snapshot,
+        test_orchestrator_auto_populates_signal_state_from_snapshot,
+        test_orchestrator_preserves_explicit_signal_state_override,
     ]
 
     passed = 0

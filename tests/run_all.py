@@ -23,6 +23,7 @@ CHECKS = [
     [sys.executable, "-m", "py_compile", "scripts/handoff_orchestrator.py"],
     [sys.executable, "-m", "py_compile", "scripts/snapshot_schema_validator.py"],
     [sys.executable, "-m", "py_compile", "scripts/fixture_snapshot_builder.py"],
+    [sys.executable, "-m", "py_compile", "scripts/signal_state_engine.py"],
     [sys.executable, "tests/test_save_conversation_import.py"],
     [sys.executable, "tests/test_scan_golden_cross_futures_stub.py"],
     [sys.executable, "tests/test_discord_trigger_router.py"],
@@ -30,6 +31,7 @@ CHECKS = [
     [sys.executable, "tests/test_handoff_orchestrator.py"],
     [sys.executable, "tests/test_snapshot_schema_validator.py"],
     [sys.executable, "tests/test_fixture_snapshot_builder.py"],
+    [sys.executable, "tests/test_signal_state_engine.py"],
 ]
 
 
