@@ -166,7 +166,12 @@ def test_orchestrator_auto_populates_signal_state_from_snapshot():
 
     assert "- Signal state: valid_signal" in result.packet_markdown, result.packet_markdown
     assert "- Active strategy: RSI_30, BB_5M_LOWER" in result.packet_markdown, result.packet_markdown
-    print("  ✓ signal state computed from local snapshot")
+    assert "## Signal detail" in result.packet_markdown, result.packet_markdown
+    assert "### Supporting factors\n- RSI 30m is at or below 30" in result.packet_markdown, result.packet_markdown
+    assert "- BB 5m pct is near the lower band" in result.packet_markdown, result.packet_markdown
+    assert "### Missing data" in result.packet_markdown, result.packet_markdown
+    assert "- futures foreign/institutional flow is unavailable and was not substituted." in result.packet_markdown, result.packet_markdown
+    print("  ✓ signal state and detail computed from local snapshot")
     return True
 
 
@@ -183,7 +188,9 @@ def test_orchestrator_preserves_explicit_signal_state_override():
 
     assert "- Signal state: conflicted_signal" in result.packet_markdown, result.packet_markdown
     assert "- Active strategy: MANUAL_REVIEW" in result.packet_markdown, result.packet_markdown
-    print("  ✓ explicit signal fields preserved")
+    assert "## Signal detail" in result.packet_markdown, result.packet_markdown
+    assert "### Missing data" in result.packet_markdown, result.packet_markdown
+    print("  ✓ explicit signal fields preserved while detail remains available")
     return True
 
 
