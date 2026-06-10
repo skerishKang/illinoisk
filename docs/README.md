@@ -16,6 +16,7 @@ Use this page as the first stop after reading the root entry files:
 | `local-regression-checks.md` | Running the default local verification workflow before or after small PRs. |
 | `conversation-sync-usage.md` | Adding, editing, or verifying Markdown conversation archives. |
 | `trading-analysis-quality-guardrails.md` | Preparing trading analysis, intraday answers, close summaries, or postmarket reviews. |
+| `../report/README.md` | Creating or editing close summaries and postmarket reviews. |
 
 ## Agent reading order
 
@@ -27,6 +28,8 @@ For normal repository work:
 4. Read a topic-specific guide from the table above.
 
 For trading analysis or market reports, always include `docs/trading-analysis-quality-guardrails.md` before making conclusions.
+
+For report files, also include `report/README.md` before creating or editing close summaries or postmarket reviews.
 
 For conversation archive edits, always include `docs/conversation-sync-usage.md` and run the sync workflow after editing.
 
