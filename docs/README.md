@@ -16,6 +16,8 @@ Use this page as the first stop after reading the root entry files:
 | `local-regression-checks.md` | Running the default local verification workflow before or after small PRs. |
 | `conversation-sync-usage.md` | Adding, editing, or verifying Markdown conversation archives. |
 | `trading-analysis-quality-guardrails.md` | Preparing trading analysis, intraday answers, close summaries, or postmarket reviews. |
+| `discord-trading-skill-trigger-architecture.md` | Designing Discord natural-language trading triggers and local snapshot flow. |
+| `chatgpt-handoff-packet-contract.md` | Building ChatGPT web review packets from Discord trading context. |
 | `../report/README.md` | Creating or editing close summaries and postmarket reviews. |
 
 ## Agent reading order
@@ -28,6 +30,8 @@ For normal repository work:
 4. Read a topic-specific guide from the table above.
 
 For trading analysis or market reports, always include `docs/trading-analysis-quality-guardrails.md` before making conclusions.
+
+For Discord trading assistant or ChatGPT web review handoff work, include `docs/discord-trading-skill-trigger-architecture.md` and `docs/chatgpt-handoff-packet-contract.md`.
 
 For report files, also include `report/README.md` before creating or editing close summaries or postmarket reviews.
 

@@ -16,6 +16,8 @@ It is not an automated trading system and should not execute live market actions
 - `docs/local-regression-checks.md`: local verification workflow.
 - `docs/conversation-sync-usage.md`: conversation archive sync workflow.
 - `docs/trading-analysis-quality-guardrails.md`: trading analysis error-prevention rules.
+- `docs/discord-trading-skill-trigger-architecture.md`: Discord natural-language trading trigger architecture.
+- `docs/chatgpt-handoff-packet-contract.md`: ChatGPT web review handoff packet contract.
 - `report/README.md`: report writing guide for close summaries and postmarket reviews.
 
 ## Main directories
@@ -68,6 +70,7 @@ python3 scripts/save_conversation.py sync --keyword "리노공업"
 5. Use `docs/conversation-sync-usage.md` after conversation archive edits.
 6. Use `docs/trading-analysis-quality-guardrails.md` before trading analysis or reports.
 7. Use `report/README.md` before creating or editing market reports.
-8. Keep default checks local-only.
-9. Do not require Kiwoom credentials, network access, or live market API calls for default tests.
-10. Do not substitute unavailable futures investor data with unrelated stock foreign flow or program-trading data.
+8. Use `docs/discord-trading-skill-trigger-architecture.md` and `docs/chatgpt-handoff-packet-contract.md` before Discord trading assistant or ChatGPT handoff work.
+9. Keep default checks local-only.
+10. Do not require Kiwoom credentials, network access, or live market API calls for default tests.
+11. Do not substitute unavailable futures investor data with unrelated stock foreign flow or program-trading data.
