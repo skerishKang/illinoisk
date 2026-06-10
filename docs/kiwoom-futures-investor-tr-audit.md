@@ -16,6 +16,10 @@
 | 전략 문서 연동 | `strategies/박사님_RSI_2퍼_시스템.md` — 외인 선물 순매도 시 진입 기준 강화 규칙 반영됨 (PR #8) |
 
 ---
+**⚠️ 2026-06-10 실전 테스트 결과 반영:**
+2026-06-10 실전 Kiwoom REST API 테스트 결과, opt50004, opt10039/10040, ka10008 선물코드는 현재 REST 경로에서 KOSPI200 선물 외인/기관 순매수 데이터로 사용할 수 없음이 확인되었다. 상세 실측 결과는 `docs/kiwoom-rest-futures-investor-test-results.md`를 기준 문서로 삼는다. 따라서 `fetch_futures_frgn_inst()`는 확인된 별도 데이터 소스가 생기기 전까지 `source="unavailable"`을 유지한다.
+
+---
 
 ## 2. 후보 TR 리스트
 
