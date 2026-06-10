@@ -13,6 +13,7 @@ This repository keeps trading research organized. It is not an automated trading
 - `docs/README.md`: documentation index and guide selection map.
 - `docs/repository-structure.md`: repository layout and top-level directory roles.
 - `docs/`: project policies, audit notes, and workflow guides.
+- `handoff/README.md`: ChatGPT review handoff packet storage guide.
 - `report/README.md`: report writing guide for close summaries and postmarket reviews.
 - `watchlist/`: stock watchlist notes.
 - `daily-logs/`: daily review records.
