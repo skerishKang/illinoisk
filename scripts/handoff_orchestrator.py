@@ -13,6 +13,7 @@ from typing import Any, Mapping, Sequence
 
 from discord_trigger_router import route_message
 from quick_handoff_packet import build_quick_handoff_packet
+from snapshot_schema_validator import require_valid_snapshot_schema
 
 
 @dataclass(frozen=True)
@@ -56,12 +57,14 @@ def build_handoff_from_message(
 ) -> HandoffOrchestrationResult:
     """Route a message and return a quick handoff Markdown packet.
 
-    The orchestration is deterministic and fixture-only. It calls
-    `route_message()` and `build_quick_handoff_packet()` with caller-provided
-    data only.
+    The orchestration is deterministic and fixture-only. It validates the
+    caller-provided snapshot, then calls `route_message()` and
+    `build_quick_handoff_packet()` with local data only.
     """
     if isinstance(data, Mapping):
         data = HandoffOrchestrationInput(**data)
+
+    snapshot = require_valid_snapshot_schema(data.snapshot)
 
     route = route_message(
         data.message,
@@ -69,8 +72,8 @@ def build_handoff_from_message(
         recent_messages=data.recent_messages,
     ).to_dict()
 
-    symbol = route.get("symbol") or data.active_symbol or _snapshot_symbol(data.snapshot) or "unavailable"
-    time_kst = data.time_kst or _snapshot_time(data.snapshot)
+    symbol = route.get("symbol") or data.active_symbol or _snapshot_symbol(snapshot) or "unavailable"
+    time_kst = data.time_kst or _snapshot_time(snapshot)
 
     packet_markdown = build_quick_handoff_packet(
         {
@@ -78,7 +81,7 @@ def build_handoff_from_message(
             "symbol": symbol,
             "user_question": data.message,
             "route": route,
-            "snapshot": data.snapshot,
+            "snapshot": snapshot,
             "signal_state": data.signal_state,
             "active_strategy": list(data.active_strategy),
             "recent_discord_excerpt": list(data.recent_messages),
