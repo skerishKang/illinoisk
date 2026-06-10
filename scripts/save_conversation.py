@@ -91,9 +91,22 @@ def find_md_file(date_str):
 def parse_markdown_conversation(content, date_str):
     """
     마크다운 대화 전문 파싱
+    
+    표준 포맷:
     **박사님:** 내용
     **Agent:** 내용
     (마크다운 볼드에서 콜론이 안에 있음: **박사님:**)
+    
+    구형 Hermes 포맷 (Legacy):
+    ### [09:47:23] 🧑‍💻 사용자
+    내용
+    
+    ### [09:47:23] 🤖 Hermes
+    내용
+    
+    정규화 규칙:
+    - 사용자 / user / 🧑‍💻 사용자 → 박사님
+    - Hermes / Agent / assistant / 🤖 Hermes → Agent
     """
     messages = []
     # 헤더(## ) 추출로 topic 결정
@@ -103,13 +116,15 @@ def parse_markdown_conversation(content, date_str):
             topic = line[3:].strip()
             break
     
-    # 발화 파싱: **박사님:** 또는 **Agent:** 마커 (마크다운 볼드 콜론 포함)
-    pattern = re.compile(r'^\*\*(박사님|Agent):\*\*\s*(.*)$')
+    # 표준 포맷 패턴: **박사님:** 또는 **Agent:** 마커
+    standard_pattern = re.compile(r'^\*\*(박사님|Agent):\*\*\s*(.*)$')
+    
     current_speaker = None
     current_message = []
     
     for line in content.split('\n'):
-        match = pattern.match(line)
+        # 표준 포맷 매칭 시도
+        match = standard_pattern.match(line)
         if match:
             # 이전 발화 저장
             if current_speaker is not None and current_message:
@@ -119,8 +134,33 @@ def parse_markdown_conversation(content, date_str):
                 })
             current_speaker = match.group(1)
             current_message = [match.group(2)]
-        elif current_speaker is not None:
-            # 같은 발화의 연속된 줄
+            continue
+        
+        # 구형 Hermes 포맷 헤더 라인 감지
+        # ### [09:47:23] 🧑‍💻 사용자
+        # ### [09:47:23] 🤖 Hermes
+        if line.startswith('### ['):
+            # 이전 발화 저장
+            if current_speaker is not None and current_message:
+                messages.append({
+                    'speaker': current_speaker,
+                    'message': '\n'.join(current_message).strip()
+                })
+            
+            # 발화자 정규화
+            if '사용자' in line or 'user' in line.lower():
+                current_speaker = '박사님'
+            elif 'Hermes' in line or 'Agent' in line or 'assistant' in line.lower():
+                current_speaker = 'Agent'
+            else:
+                # 알 수 없는 경우 건너뛰기
+                current_speaker = None
+            
+            current_message = []
+            continue
+        
+        # 같은 발화의 연속된 줄
+        if current_speaker is not None:
             current_message.append(line)
     
     # 마지막 발화 저장

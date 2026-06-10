@@ -293,54 +293,166 @@ def test_import_md_error_handling():
 def test_find_md_file():
     """find_md_file 함수 테스트"""
     print("\n테스트 6: find_md_file")
-    
+
     test_dir, test_conv_dir, test_db_dir, orig_base, orig_db, orig_conv_dir = setup_test_env()
-    
+
     try:
         import save_conversation as sc
-        
+
         date_str = "2026-06-13"
         conv_date_dir = test_conv_dir / date_str
         conv_date_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # 케이스 1: 디렉터리/전문.md만 있음
         dir_file = conv_date_dir / "전문.md"
         with open(dir_file, 'w') as f:
             f.write("test")
-        
+
         found = sc.find_md_file(date_str)
         assert found == dir_file, f"디렉터리 파일 못 찾음: {found}"
-        
+
         # 케이스 2: 파일.md만 있음 (디렉터리 삭제)
         dir_file.unlink()
         conv_date_dir.rmdir()
-        
+
         file_md = test_conv_dir / f"{date_str}.md"
         with open(file_md, 'w') as f:
             f.write("test")
-        
+
         found = sc.find_md_file(date_str)
         assert found == file_md, f"파일.md 못 찾음: {found}"
-        
+
         # 케이스 3: 둘 다 없음
         file_md.unlink()
         found = sc.find_md_file("2026-01-01")
         assert found is None, f"없는 파일인데 찾음: {found}"
-        
+
         print("  ✓ 디렉터리/전문.md 우선 찾기")
         print("  ✓ 파일.md 대체 찾기")
         print("  ✓ 없으면 None 반환")
         return True
-        
+
     finally:
         teardown_test_env(test_dir, orig_base, orig_db, orig_conv_dir)
+
+
+def test_parse_legacy_hermes_format():
+    """구형 Hermes 포맷 파싱 테스트"""
+    print("\n테스트 7: parse_markdown_conversation 구형 Hermes 포맷")
+
+    content = """# 2026-05-28 대화
+
+### [09:47:23] 🧑‍💻 사용자
+리노공업 대주주 매도 찾아봐
+
+### [09:47:24] 🤖 Hermes
+확인해보겠습니다.
+
+### [09:47:25] 🤖 Hermes
+추가 정보입니다.
+여러 줄도 가능합니다.
+
+### [09:47:26] 🧑‍💻 사용자
+고마워요
+"""
+
+    messages, topic = parse_markdown_conversation(content, "2026-05-28")
+
+    assert len(messages) == 4, f"메시지 수 불일치: {len(messages)}"
+
+    # 발화자 정규화 확인
+    assert messages[0]['speaker'] == "박사님", f"1번째 화자 불일치: {messages[0]['speaker']}"
+    assert messages[1]['speaker'] == "Agent", f"2번째 화자 불일치: {messages[1]['speaker']}"
+    assert messages[2]['speaker'] == "Agent", f"3번째 화자 불일치: {messages[2]['speaker']}"
+    assert messages[3]['speaker'] == "박사님", f"4번째 화자 불일치: {messages[3]['speaker']}"
+
+    # 메시지 내용 확인
+    assert "리노공업 대주주 매도 찾아봐" in messages[0]['message']
+    assert "확인해보겠습니다." in messages[1]['message']
+    assert "추가 정보입니다." in messages[2]['message']
+    assert "여러 줄도 가능합니다." in messages[2]['message']
+    assert "고마워요" in messages[3]['message']
+
+    print("  ✓ 구형 Hermes 포맷 4개 메시지 파싱 정상")
+    print("  ✓ 화자 정규화: 사용자 → 박사님, Hermes → Agent")
+    print("  ✓ 여러 줄 메시지 합치기 정상")
+    return True
+
+
+def test_parse_mixed_format():
+    """표준 포맷과 구형 포맷이 섞여 있을 때 테스트"""
+    print("\n테스트 8: 표준 포맷 + 구형 포맷 혼합 파싱")
+
+    content = """# 2026-06-10 대화
+
+## 대화 개요
+
+**박사님:** 표준 포맷 시작
+**Agent:** 표준 응답
+
+### [09:47:23] 🧑‍💻 사용자
+구형 포맷 사용자
+
+### [09:47:24] 🤖 Hermes
+구형 포맷 에이전트
+
+**박사님:** 다시 표준 포맷
+**Agent:** 다시 표준 응답
+"""
+
+    messages, topic = parse_markdown_conversation(content, "2026-06-10")
+
+    assert len(messages) == 6, f"메시지 수 불일치: {len(messages)}"
+    assert topic == "대화 개요", f"topic 불일치: {topic}"
+
+    # 순서 확인
+    expected_speakers = ["박사님", "Agent", "박사님", "Agent", "박사님", "Agent"]
+    for i, (msg, exp) in enumerate(zip(messages, expected_speakers)):
+        assert msg['speaker'] == exp, f"메시지 {i} 화자 불일치: {msg['speaker']} != {exp}"
+
+    print("  ✓ 혼합 포맷 6개 메시지 파싱 정상")
+    print("  ✓ 화자 순서 정상 유지")
+    print("  ✓ topic 추출 정상")
+    return True
+
+
+def test_legacy_variants():
+    """구형 포맷 변형 테스트 (user, assistant, Agent 등)"""
+    print("\n테스트 9: 구형 포맷 변형 (user, assistant, Agent)")
+
+    content = """### [10:00:00] 🧑‍💻 user
+user 키워드
+
+### [10:00:01] 🤖 assistant
+assistant 키워드
+
+### [10:00:02] Agent as text
+Agent 텍스트 포함
+
+### [10:00:03] 🧑‍💻 사용자
+한국어 사용자
+"""
+
+    messages, _ = parse_markdown_conversation(content, "2026-06-10")
+
+    assert len(messages) == 4, f"메시지 수 불일치: {len(messages)}"
+    assert messages[0]['speaker'] == "박사님", f"user → 박사님 실패: {messages[0]['speaker']}"
+    assert messages[1]['speaker'] == "Agent", f"assistant → Agent 실패: {messages[1]['speaker']}"
+    assert messages[2]['speaker'] == "Agent", f"Agent 텍스트 → Agent 실패: {messages[2]['speaker']}"
+    assert messages[3]['speaker'] == "박사님", f"한국어 사용자 → 박사님 실패: {messages[3]['speaker']}"
+
+    print("  ✓ user → 박사님 정규화")
+    print("  ✓ assistant → Agent 정규화")
+    print("  ✓ Agent 텍스트 포함 → Agent 정규화")
+    print("  ✓ 한국어 사용자 → 박사님 정규화")
+    return True
 
 def run_all_tests():
     """모든 테스트 실행"""
     print("=" * 50)
     print("save_conversation.py import-md 테스트 시작")
     print("=" * 50)
-    
+
     tests = [
         test_parse_markdown_conversation,
         test_import_md_basic,
@@ -348,11 +460,14 @@ def run_all_tests():
         test_import_md_file_priority,
         test_import_md_error_handling,
         test_find_md_file,
+        test_parse_legacy_hermes_format,
+        test_parse_mixed_format,
+        test_legacy_variants,
     ]
-    
+
     passed = 0
     failed = 0
-    
+
     for test in tests:
         try:
             result = test()
@@ -363,11 +478,11 @@ def run_all_tests():
             print(f"  ✗ 실패: {e}")
             import traceback
             traceback.print_exc()
-    
+
     print("\n" + "=" * 50)
     print(f"결과: {passed}개 통과, {failed}개 실패")
     print("=" * 50)
-    
+
     return failed == 0
 
 if __name__ == "__main__":
