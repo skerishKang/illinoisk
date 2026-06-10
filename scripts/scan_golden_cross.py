@@ -135,9 +135,22 @@ def fetch_program_batch(token):
     
     return result
 
+def fetch_futures_frgn_inst(token):
+    """외인/기관 선물(KOSPI200) 순매수 조회 — ka10010 또는 전용 TR 필요"""
+    # TODO: 키움 REST API에서 선물 외인/기관 수급 제공하는 TR 찾으면 구현
+    # 현재 ka10010(프로그램매매동향)은 주식 기준, 선물 전용 TR 별도 필요
+    # OpenAPI+라면: 
+    #   - 선물/옵션 체결요청 (opt50001~)
+    #   - 투자자별 매매동향 (opt10039/opt10040 등)
+    return {"frgn_net": 0, "inst_net": 0, "source": "unavailable"}
+
+
 def fetch_market_overview(token):
-    """전체 시장 개요 — 코스피/코스닥 지수 + 선물 + 외인 매매"""
+    """전체 시장 개요 — 코스피/코스닥 지수 + 선물 + 외인 매매 + 외인/기관 선물 수급"""
     overview = {}
+    
+    # 🔴 외인/기관 선물 수급 체크 (최우선)
+    overview["futures_frgn_inst"] = fetch_futures_frgn_inst(token)
     
     # KOSPI200 선물 (106F200)
     r = subprocess.run(['curl', '-s', '-X', 'POST', 'https://api.kiwoom.com/api/dostk/chart',
@@ -175,6 +188,18 @@ def print_market_overview(ov):
     """시장 개요 출력"""
     print(f"\n🌍 전체 시장 현황 — {now_kst()} KST")
     print(f"  {'─'*40}")
+    
+    # 🔴 외인/기관 선물 수급 (최상단)
+    ffi = ov.get("futures_frgn_inst", {})
+    frgn_net = ffi.get("frgn_net", 0)
+    inst_net = ffi.get("inst_net", 0)
+    src = ffi.get("source", "unavailable")
+    if frgn_net or inst_net:
+        f_arrow = "🟢" if frgn_net > 0 else "🔴" if frgn_net < 0 else "⚪"
+        i_arrow = "🟢" if inst_net > 0 else "🔴" if inst_net < 0 else "⚪"
+        print(f"  📊 선물 외인: {f_arrow} {frgn_net:+,}주 | 기관: {i_arrow} {inst_net:+,}주 ({src})")
+    else:
+        print(f"  📊 선물 외인/기관: 데이터 없음 ({src})")
     
     # KOSPI200 선물
     fp = ov.get("futures_price", 0)
@@ -314,6 +339,11 @@ def main():
     # 시장 개요
     fp = overview.get("futures_price", 0)
     if fp: content_lines.append(f"코스피200선물: {fp:,}p")
+    ffi = overview.get("futures_frgn_inst", {})
+    frgn_net = ffi.get("frgn_net", 0)
+    inst_net = ffi.get("inst_net", 0)
+    if frgn_net or inst_net:
+        content_lines.append(f"선물외인:{frgn_net:+,} 선물기관:{inst_net:+,}")
     dfrt = overview.get("프로그램_차익순매수", 0)
     ndiff = overview.get("프로그램_비차익순매수", 0)
     if dfrt or ndiff: content_lines.append(f"프로그램 차익{dfrt:+,} 비차익{ndiff:+,}")
