@@ -27,6 +27,10 @@ class QuickHandoffInput:
     snapshot: Mapping[str, Any]
     signal_state: str = "unavailable"
     active_strategy: Sequence[str] = field(default_factory=list)
+    signal_supporting_factors: Sequence[str] = field(default_factory=list)
+    signal_conflicting_factors: Sequence[str] = field(default_factory=list)
+    signal_near_factors: Sequence[str] = field(default_factory=list)
+    signal_missing_data: Sequence[str] = field(default_factory=list)
     recent_discord_excerpt: Sequence[str] = field(default_factory=list)
     current_model_answer: str | None = None
 
@@ -53,6 +57,12 @@ def _get_nested(mapping: Mapping[str, Any], *keys: str) -> Any:
 
 
 def _format_excerpt(lines: Sequence[str]) -> str:
+    if not lines:
+        return "- unavailable"
+    return "\n".join(f"- {line}" for line in lines)
+
+
+def _format_bullets(lines: Sequence[str]) -> str:
     if not lines:
         return "- unavailable"
     return "\n".join(f"- {line}" for line in lines)
@@ -87,6 +97,19 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         f"- User question: {_format_value(data.user_question)}",
         f"- Active strategy: {active_strategy}",
         f"- Signal state: {_format_value(data.signal_state)}",
+        "",
+        "## Signal detail",
+        "### Supporting factors",
+        _format_bullets(data.signal_supporting_factors),
+        "",
+        "### Conflicting factors",
+        _format_bullets(data.signal_conflicting_factors),
+        "",
+        "### Near factors",
+        _format_bullets(data.signal_near_factors),
+        "",
+        "### Missing data",
+        _format_bullets(data.signal_missing_data),
         "",
         "## Trigger route",
         f"- Intent: {route_intent}",
