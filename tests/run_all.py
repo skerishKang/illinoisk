@@ -18,8 +18,10 @@ BASE = Path(__file__).resolve().parents[1]
 
 CHECKS = [
     [sys.executable, "-m", "py_compile", "scripts/scan_golden_cross.py"],
+    [sys.executable, "-m", "py_compile", "scripts/discord_trigger_router.py"],
     [sys.executable, "tests/test_save_conversation_import.py"],
     [sys.executable, "tests/test_scan_golden_cross_futures_stub.py"],
+    [sys.executable, "tests/test_discord_trigger_router.py"],
 ]
 
 
