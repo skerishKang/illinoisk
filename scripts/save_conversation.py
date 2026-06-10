@@ -9,6 +9,7 @@ illinoisK 대화 저장 및 검색 도구 (Hermes 독립)
   python3 save_conversation.py index
   python3 save_conversation.py import-md --date 2026-06-10 [--keywords "키워드"]
   python3 save_conversation.py import-all-md
+  python3 save_conversation.py sync [--keyword "키워드"]
 """
 import sqlite3, os, sys, re
 from datetime import datetime, timezone, timedelta
@@ -260,6 +261,45 @@ def import_all_md():
     
     print(f"\n=== 총 {total}개 메시지 import 완료 ===")
 
+
+def sync(keyword=""):
+    """전체 동기화: import-all-md + index + 요약 + 선택적 검색"""
+    print("=== 대화 동기화 시작 ===\n")
+    
+    # 1. import-all-md 실행
+    import_all_md()
+    
+    print("\n=== 인덱스 현황 ===")
+    
+    # 2. index 출력 + 총계 계산
+    rows = index()
+    if not rows:
+        print("데이터가 없습니다.")
+        return
+    
+    total_dates = len(rows)
+    total_messages = sum(row[2] for row in rows)
+    
+    for d, title, cnt, kw in rows:
+        print(f"{d}: {title} ({cnt} msgs) [{kw}]")
+    
+    print(f"\n=== 요약 ===")
+    print(f"총 날짜 수: {total_dates}개")
+    print(f"총 메시지 수: {total_messages}개")
+    
+    # 3. 선택적 키워드 검색
+    if keyword:
+        print(f"\n=== 검색: '{keyword}' ===")
+        results = search(keyword, limit=10)
+        if not results:
+            print("검색 결과 없음")
+        else:
+            for s, m, t, top in results:
+                print(f"[{t[:19]}] {s}: {m[:100]}...")
+    
+    print("\n=== 동기화 완료 ===")
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print(__doc__)
@@ -294,6 +334,9 @@ if __name__ == "__main__":
         import_md(date_str, kw)
     elif cmd == "import-all-md":
         import_all_md()
+    elif cmd == "sync":
+        kw = sys.argv[sys.argv.index("--keyword") + 1] if "--keyword" in sys.argv else ""
+        sync(kw)
     else:
         print(f"알 수 없는 명령: {cmd}")
         print(__doc__)
