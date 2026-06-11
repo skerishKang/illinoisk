@@ -16,7 +16,25 @@ FUTURES_UNAVAILABLE_NOTICE = (
     "current confirmed source. This handoff does not substitute stock foreign "
     "flow or program trading data for it."
 )
-
+EXPECTED_DECISION_PREFIXES = (
+    "Decision: 진입",
+    "Decision: 대기",
+    "Decision: 보류",
+    "Decision: 제외",
+)
+LIVE_EXECUTION_TERMS = (
+    "buy now",
+    "sell now",
+    "place an order",
+    "execute the trade",
+    "market order",
+    "지금 매수",
+    "지금 매도",
+    "바로 매수",
+    "바로 매도",
+    "주문 넣",
+    "시장가",
+)
 EXPECTED_DECISION_BY_SIGNAL_STATE = {
     "valid_signal": "진입",
     "near_signal": "대기",
@@ -98,6 +116,28 @@ def _format_decision_consistency(data: QuickHandoffInput) -> str:
     return f"inconsistent: {signal_state} expects {expected}, got {decision}"
 
 
+def _current_answer_guardrail_status(answer: str | None) -> tuple[str, list[str]]:
+    if answer is None or not str(answer).strip():
+        return "unavailable", ["current model answer unavailable"]
+
+    answer_text = str(answer).strip()
+    first_line = next((line.strip() for line in answer_text.splitlines() if line.strip()), "")
+    reasons: list[str] = []
+
+    if not any(first_line.startswith(prefix) for prefix in EXPECTED_DECISION_PREFIXES):
+        reasons.append("first non-empty line does not start with an allowed Decision prefix")
+
+    lowered = answer_text.lower()
+    for term in LIVE_EXECUTION_TERMS:
+        if term.lower() in lowered:
+            reasons.append(f"live execution-style wording detected: {term}")
+            break
+
+    if reasons:
+        return "violation", reasons
+    return "compliant", ["current model answer follows the required decision-first guardrail"]
+
+
 def _format_intraday_decision_summary(data: QuickHandoffInput) -> str:
     """Return a deterministic one-line action summary for the decision section."""
     decision = _format_value(data.intraday_decision)
@@ -131,6 +171,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
     route_triggers = _format_value(route.get("triggers"))
     route_intent = _format_value(route.get("intent"))
     route_reply_mode = _format_value(route.get("reply_mode"))
+    current_answer_status, current_answer_reasons = _current_answer_guardrail_status(data.current_model_answer)
 
     lines = [
         "# Quick ChatGPT trading review",
@@ -207,6 +248,11 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         "## Current model answer",
         _format_value(data.current_model_answer),
         "",
+        "## Current answer guardrail check",
+        f"- Status: {current_answer_status}",
+        "### Guardrail findings",
+        _format_bullets(current_answer_reasons),
+        "",
         "## Required response format",
         "- The first line must start with exactly one of: `Decision: 진입`, `Decision: 대기`, `Decision: 보류`, `Decision: 제외`.",
         "- Do not answer with only a vague strength comment such as `strong stock`, `looks good`, or `watch it`.",
@@ -239,7 +285,9 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
 
 __all__ = [
     "EXPECTED_DECISION_BY_SIGNAL_STATE",
+    "EXPECTED_DECISION_PREFIXES",
     "FUTURES_UNAVAILABLE_NOTICE",
+    "LIVE_EXECUTION_TERMS",
     "QuickHandoffInput",
     "build_quick_handoff_packet",
 ]
