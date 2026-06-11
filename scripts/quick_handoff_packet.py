@@ -138,6 +138,35 @@ def _current_answer_guardrail_status(answer: str | None) -> tuple[str, list[str]
     return "compliant", ["current model answer follows the required decision-first guardrail"]
 
 
+def _guardrail_summary(
+    data: QuickHandoffInput,
+    decision_consistency: str,
+    current_answer_status: str,
+) -> tuple[str, list[str]]:
+    findings: list[str] = []
+
+    if decision_consistency.startswith("inconsistent"):
+        findings.append(f"decision/state mismatch: {decision_consistency}")
+    if current_answer_status == "violation":
+        findings.append("current model answer violates required guardrails")
+    if _format_value(data.signal_state) == "unavailable":
+        findings.append("signal state is unavailable")
+
+    if findings:
+        return "blocked", findings
+
+    if current_answer_status == "unavailable":
+        findings.append("current model answer unavailable")
+    if decision_consistency == "unavailable":
+        findings.append("decision/state consistency unavailable")
+    if data.signal_missing_data:
+        findings.append("signal missing data present: " + _format_value(list(data.signal_missing_data)))
+
+    if findings:
+        return "attention", findings
+    return "clear", ["all packet guardrail checks are clear"]
+
+
 def _format_intraday_decision_summary(data: QuickHandoffInput) -> str:
     """Return a deterministic one-line action summary for the decision section."""
     decision = _format_value(data.intraday_decision)
@@ -171,10 +200,20 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
     route_triggers = _format_value(route.get("triggers"))
     route_intent = _format_value(route.get("intent"))
     route_reply_mode = _format_value(route.get("reply_mode"))
+    decision_consistency = _format_decision_consistency(data)
     current_answer_status, current_answer_reasons = _current_answer_guardrail_status(data.current_model_answer)
+    summary_status, summary_findings = _guardrail_summary(data, decision_consistency, current_answer_status)
 
     lines = [
         "# Quick ChatGPT trading review",
+        "",
+        "## Guardrail summary",
+        f"- Overall status: {summary_status}",
+        f"- Decision/state consistency: {decision_consistency}",
+        f"- Current answer status: {current_answer_status}",
+        f"- Signal state: {_format_value(data.signal_state)}",
+        "### Summary findings",
+        _format_bullets(summary_findings),
         "",
         "## Review request",
         f"- Time KST: {_format_value(data.time_kst)}",
@@ -186,7 +225,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         "## Intraday decision",
         f"- Decision: {_format_value(data.intraday_decision)}",
         f"- Strength: {_format_value(data.intraday_decision_strength)}",
-        f"- Decision/state consistency: {_format_decision_consistency(data)}",
+        f"- Decision/state consistency: {decision_consistency}",
         f"- Summary: {_format_intraday_decision_summary(data)}",
         "### Decision reasons",
         _format_bullets(data.intraday_decision_reasons),
