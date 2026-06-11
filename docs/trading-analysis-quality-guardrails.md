@@ -181,15 +181,37 @@ Preferred:
 현재 데이터로는 신호는 유효하지만, 리스크가 큽니다. 판단에 필요한 체크포인트를 정리하겠습니다.
 ```
 
-Avoid:
+**FORBIDDEN — 절대 사용 금지 (2026-06-11 수정):**
 
 ```text
 절대 들어가지 마세요.
 관망하세요.
 추격 금지입니다.
+들어가지 마세요.
+매수하지 마세요.
 ```
 
-A hard stop is allowed only when a documented rule is violated, such as missing RSI, unsupported data substitution, wrong market, or a pre-defined invalidation level being broken.
+에이전트는 매수를 막거나 금지하는 표현을 사용해서는 안 됩니다. 데이터와 리스크 체크포인트를 제공하고 판단은 사용자(박사님)에게 맡겨야 합니다.
+
+## Entry condition expansion (2026-06-11 added)
+
+RSI 30만 고집하면 모멘텀 장에서 진입 기회를 영원히 놓친다.
+아래 조건 중 하나라도 충족되면 진입 검토 대상으로 제시해야 하며, **"조건 미달"로 진입을 막아서는 안 된다.**
+
+### Condition 1 — Gap down reversal
+전일 종가 대비 -3% 이상 하락 후 저가에서 반등 시도 → 진입 검토
+(예: HPSP 2026-06-11 저가 49,900 -5% 찍고 반등)
+
+### Condition 2 — Breakout / momentum
+장초 60분 내 전일 고가 돌파 & +3% 이상 유지 & 거래량 평균 1.5배 이상 → 진입 검토
+(예: 원익/이오/주성 2026-06-11 09:55 이미 +5~10%)
+
+### Condition 3 — Volume surge + price hold
+평균 거래량 2배 이상 & 전일비 +3% 이상 & 가격 방어 중 → 진입 검토
+(예: 동진 54,300서 만주 매수 확인)
+
+### Condition 4 — User-specified stock (최우선)
+사용자가 "이거 봐봐" / "이거 어때" 하고 종목을 지목하면, 조건 충족 여부만 데이터로 보고하고 **절대 진입을 막지 않는다.**
 
 ## Default validation policy
 
