@@ -116,7 +116,7 @@ def test_late_chase_valid_signal_downgrades_to_대기():
     snapshot = valid_signal_snapshot(
         quote_overrides={
             "high_to_current_pct": -0.3,
-            "low_to_current_pct": 1.8,
+            "low_to_current_pct": 0.2,
         }
     )
     signal_result = evaluate_signal_state(snapshot)
@@ -125,7 +125,7 @@ def test_late_chase_valid_signal_downgrades_to_대기():
     assert result.decision == "대기", result
     assert any("당일 고점 근처 추격" in reason for reason in result.reasons), result
     assert any("late-chase guard" in item for item in result.invalid_conditions), result
-    assert result.stop_reference == "RSI 30m <= 30 + BB 하단 근접 시 직전 저점 기준; estimated stop distance 1.80%", result
+    assert result.stop_reference == "RSI 30m <= 30 + BB 하단 근접 시 직전 저점 기준; estimated stop distance 0.20%", result
     assert result.take_profit_reference == "recent intraday high reference; estimated upside 0.30%", result
     print("  ✓ late-chase guard waits instead of entering")
     return True
