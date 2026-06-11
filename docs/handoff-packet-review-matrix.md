@@ -2,6 +2,8 @@
 
 This guide is a docs-only companion to `docs/handoff-guardrail-packet-behavior.md`.
 
+Start with `docs/handoff-guardrail-packet-behavior.md` for the full section-by-section behavior guide, then use this matrix as a compact review checklist.
+
 It summarizes how an operator should read common quick handoff packet states. The matrix is fixture/local-only and describes review semantics only. It does not add runtime behavior.
 
 ## Summary status matrix
