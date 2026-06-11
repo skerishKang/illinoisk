@@ -109,6 +109,8 @@ def test_packet_contains_required_sections():
         "## Flow",
         "## Recent Discord conversation excerpt",
         "## Current model answer",
+        "## Required response format",
+        "### Required answer template",
         "## Ask ChatGPT",
     ]
     for text in required:
@@ -202,6 +204,7 @@ def test_packet_includes_excerpt_model_answer_and_questions():
     assert "- HPSP 지금 어때?" in packet, packet
     assert "- 신호 왔어?" in packet, packet
     assert "신호는 보이지만 시장이 약해서 조심해야 합니다." in packet, packet
+    assert "Start the answer using the required decision-first response format" in packet, packet
     assert "Is the signal valid" in packet, packet
     assert "Is the local intraday decision 진입, 대기, 보류, or 제외?" in packet, packet
     assert "chase-buying zone" in packet, packet
@@ -248,6 +251,32 @@ def test_empty_optional_fields_render_unavailable():
     return True
 
 
+def test_packet_requires_decision_first_response_format():
+    print("\n테스트 8: decision-first response format required")
+    packet = build_quick_handoff_packet(fixture_payload())
+
+    required = [
+        "## Required response format",
+        "- The first line must start with exactly one of: `Decision: 진입`, `Decision: 대기`, `Decision: 보류`, `Decision: 제외`.",
+        "- Do not answer with only a vague strength comment such as `strong stock`, `looks good`, or `watch it`.",
+        "- State whether the current setup is `chase-buying`, `confirmed pullback`, `conflicted`, or `unavailable`.",
+        "- Then provide short sections: `Reason`, `Entry conditions`, `Invalid / wait conditions`, and `Stop reference`.",
+        "- Do not recommend or imply live trade execution; keep the output as local analysis for the user's decision.",
+        "### Required answer template",
+        "Decision: 진입|대기|보류|제외",
+        "Setup: chase-buying|confirmed pullback|conflicted|unavailable",
+        "Reason: <brief reason based only on the packet>",
+        "Entry conditions:\n- <condition or unavailable>",
+        "Invalid / wait conditions:\n- <condition or unavailable>",
+        "Stop reference: <reference or unavailable>",
+    ]
+    for text in required:
+        assert text in packet, f"missing required response format: {text}"
+
+    print("  ✓ decision-first response format required")
+    return True
+
+
 def run_all_tests():
     print("=" * 60)
     print("quick_handoff_packet.py fixture tests")
@@ -261,6 +290,7 @@ def run_all_tests():
         test_packet_preserves_unavailable_values,
         test_packet_includes_excerpt_model_answer_and_questions,
         test_empty_optional_fields_render_unavailable,
+        test_packet_requires_decision_first_response_format,
     ]
 
     passed = 0
