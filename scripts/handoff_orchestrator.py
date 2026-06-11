@@ -8,7 +8,7 @@ data, or call models.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Mapping, Sequence
 
 from discord_trigger_router import route_message
@@ -69,7 +69,6 @@ def build_handoff_from_message(
 
     snapshot = require_valid_snapshot_schema(data.snapshot)
     signal_result = evaluate_signal_state(snapshot)
-    intraday_decision = evaluate_intraday_decision(signal_result)
 
     route = route_message(
         data.message,
@@ -81,6 +80,9 @@ def build_handoff_from_message(
     time_kst = data.time_kst or _snapshot_time(snapshot)
     signal_state = data.signal_state if data.signal_state is not None else signal_result.state
     active_strategy = list(data.active_strategy) or list(signal_result.active_strategy)
+
+    effective_signal_result = replace(signal_result, state=signal_state)
+    intraday_decision = evaluate_intraday_decision(effective_signal_result)
 
     packet_markdown = build_quick_handoff_packet(
         {
