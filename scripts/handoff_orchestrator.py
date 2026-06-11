@@ -9,6 +9,7 @@ data, or call models.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
+from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Sequence
 
 from discord_trigger_router import route_message
@@ -18,8 +19,13 @@ from signal_state_engine import evaluate_signal_state
 from snapshot_schema_validator import require_valid_snapshot_schema
 
 
+KST = timezone(timedelta(hours=9))
+MAX_SNAPSHOT_AGE_SECONDS = 180
 QUOTE_GUARD_CURRENT_PRICE_UNAVAILABLE = "current_price unavailable"
 QUOTE_GUARD_SNAPSHOT_AS_OF_UNAVAILABLE = "snapshot as_of unavailable"
+QUOTE_GUARD_SNAPSHOT_AS_OF_UNPARSABLE = "snapshot as_of unparsable"
+QUOTE_GUARD_SNAPSHOT_REFERENCE_TIME_UNPARSABLE = "snapshot reference time unparsable"
+QUOTE_GUARD_SNAPSHOT_STALE = "snapshot stale"
 
 
 @dataclass(frozen=True)
@@ -32,6 +38,7 @@ class HandoffOrchestrationInput:
     signal_state: str | None = None
     active_strategy: Sequence[str] = field(default_factory=list)
     time_kst: str | None = None
+    snapshot_reference_time: str | None = None
 
 
 @dataclass(frozen=True)
@@ -76,14 +83,56 @@ def _as_positive_number(value: Any) -> float | None:
     return number if number > 0 else None
 
 
-def _quote_guard_missing_data(snapshot: Mapping[str, Any]) -> list[str]:
-    """Return conservative local guard reasons for stale/missing quote data."""
+def _parse_local_datetime(value: Any) -> datetime | None:
+    if _is_unavailable(value):
+        return None
+    text = str(value).strip()
+    candidates = [text]
+    if text.endswith("Z"):
+        candidates.append(text[:-1] + "+00:00")
+    if text.endswith(" KST"):
+        candidates.append(text[:-4] + "+09:00")
+    if text.endswith("KST") and not text.endswith(" KST"):
+        candidates.append(text[:-3].strip() + "+09:00")
+
+    for candidate in candidates:
+        try:
+            parsed = datetime.fromisoformat(candidate)
+        except ValueError:
+            continue
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=KST)
+        return parsed
+    return None
+
+
+def _snapshot_age_guard_missing_data(snapshot: Mapping[str, Any], reference_time: Any) -> list[str]:
+    if _is_unavailable(reference_time):
+        return []
+
+    as_of = _parse_local_datetime(snapshot.get("as_of"))
+    if as_of is None:
+        return [QUOTE_GUARD_SNAPSHOT_AS_OF_UNPARSABLE]
+
+    reference = _parse_local_datetime(reference_time)
+    if reference is None:
+        return [QUOTE_GUARD_SNAPSHOT_REFERENCE_TIME_UNPARSABLE]
+
+    age_seconds = (reference.astimezone(timezone.utc) - as_of.astimezone(timezone.utc)).total_seconds()
+    if age_seconds > MAX_SNAPSHOT_AGE_SECONDS:
+        return [f"{QUOTE_GUARD_SNAPSHOT_STALE}: {int(age_seconds)}s old"]
+    return []
+
+
+def _quote_guard_missing_data(snapshot: Mapping[str, Any], reference_time: Any = None) -> list[str]:
     missing: list[str] = []
     quote = snapshot.get("quote", {})
     quote = quote if isinstance(quote, Mapping) else {}
 
     if _is_unavailable(snapshot.get("as_of")):
         missing.append(QUOTE_GUARD_SNAPSHOT_AS_OF_UNAVAILABLE)
+    else:
+        missing.extend(_snapshot_age_guard_missing_data(snapshot, reference_time))
     if _as_positive_number(quote.get("current_price")) is None:
         missing.append(QUOTE_GUARD_CURRENT_PRICE_UNAVAILABLE)
 
@@ -117,7 +166,7 @@ def build_handoff_from_message(
     raw_signal_state = data.signal_state if data.signal_state is not None else signal_result.state
     active_strategy = list(data.active_strategy) or list(signal_result.active_strategy)
 
-    quote_guard_missing = _quote_guard_missing_data(snapshot)
+    quote_guard_missing = _quote_guard_missing_data(snapshot, data.snapshot_reference_time or data.time_kst)
     effective_signal_state = "unavailable" if quote_guard_missing else raw_signal_state
     effective_missing_data = list(signal_result.missing_data) + quote_guard_missing
 
@@ -162,7 +211,11 @@ def build_handoff_from_message(
 __all__ = [
     "HandoffOrchestrationInput",
     "HandoffOrchestrationResult",
+    "MAX_SNAPSHOT_AGE_SECONDS",
     "QUOTE_GUARD_CURRENT_PRICE_UNAVAILABLE",
     "QUOTE_GUARD_SNAPSHOT_AS_OF_UNAVAILABLE",
+    "QUOTE_GUARD_SNAPSHOT_AS_OF_UNPARSABLE",
+    "QUOTE_GUARD_SNAPSHOT_REFERENCE_TIME_UNPARSABLE",
+    "QUOTE_GUARD_SNAPSHOT_STALE",
     "build_handoff_from_message",
 ]

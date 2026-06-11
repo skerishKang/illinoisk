@@ -30,6 +30,7 @@ CHECKS = [
     [sys.executable, "tests/test_discord_trigger_router.py"],
     [sys.executable, "tests/test_quick_handoff_packet.py"],
     [sys.executable, "tests/test_handoff_orchestrator.py"],
+    [sys.executable, "tests/test_handoff_snapshot_age_guard.py"],
     [sys.executable, "tests/test_snapshot_schema_validator.py"],
     [sys.executable, "tests/test_fixture_snapshot_builder.py"],
     [sys.executable, "tests/test_signal_state_engine.py"],
