@@ -63,6 +63,7 @@ class QuickHandoffInput:
     intraday_entry_conditions: Sequence[str] = field(default_factory=list)
     intraday_invalid_conditions: Sequence[str] = field(default_factory=list)
     intraday_stop_reference: str | None = None
+    intraday_take_profit_reference: str | None = None
     recent_discord_excerpt: Sequence[str] = field(default_factory=list)
     current_model_answer: str | None = None
 
@@ -171,13 +172,13 @@ def _format_intraday_decision_summary(data: QuickHandoffInput) -> str:
     """Return a deterministic one-line action summary for the decision section."""
     decision = _format_value(data.intraday_decision)
     if decision == "진입":
-        return "Strong stock with valid local signal. Entry may be considered only within the listed conditions."
+        return "Strong stock with valid local signal and acceptable local risk/reward. Entry may be considered only within the listed conditions."
     if decision == "대기":
         return "Strong or near-signal stock, but current entry is not confirmed. Avoid chase-buying and wait for pullback confirmation."
     if decision == "보류":
         return "Signal has conflicting evidence. Hold the decision until conflict conditions are resolved."
     if decision == "제외":
-        return "Local signal is invalid or unavailable. Exclude from entry until required data and conditions recover."
+        return "Local signal is invalid, unavailable, or the local risk/reward gate failed. Exclude from entry until required data and conditions recover."
     return "Intraday decision is unavailable from the current local inputs."
 
 
@@ -237,6 +238,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         _format_bullets(data.intraday_invalid_conditions),
         "",
         f"- Stop reference: {_format_value(data.intraday_stop_reference)}",
+        f"- Take-profit reference: {_format_value(data.intraday_take_profit_reference)}",
         "",
         "## Signal detail",
         "### Supporting factors",
@@ -296,7 +298,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         "- The first line must start with exactly one of: `Decision: 진입`, `Decision: 대기`, `Decision: 보류`, `Decision: 제외`.",
         "- Do not answer with only a vague strength comment such as `strong stock`, `looks good`, or `watch it`.",
         "- State whether the current setup is `chase-buying`, `confirmed pullback`, `conflicted`, or `unavailable`.",
-        "- Then provide short sections: `Reason`, `Entry conditions`, `Invalid / wait conditions`, and `Stop reference`.",
+        "- Then provide short sections: `Reason`, `Entry conditions`, `Invalid / wait conditions`, `Stop reference`, and `Take-profit reference`.",
         "- Do not recommend or imply live trade execution; keep the output as local analysis for the user's decision.",
         "",
         "### Required answer template",
@@ -308,13 +310,14 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         "Invalid / wait conditions:",
         "- <condition or unavailable>",
         "Stop reference: <reference or unavailable>",
+        "Take-profit reference: <reference or unavailable>",
         "",
         "## Ask ChatGPT",
         "1. Start the answer using the required decision-first response format above.",
         "2. Is the signal valid, conflicted, near, invalid, or unavailable?",
         "3. Is the local intraday decision 진입, 대기, 보류, or 제외?",
         "4. Is the current price a chase-buying zone or a confirmed pullback zone?",
-        "5. What entry, invalidation, and stop conditions should be checked before the user decides?",
+        "5. What entry, invalidation, stop, and take-profit conditions should be checked before the user decides?",
         "6. Did the current model answer violate the trading analysis guardrails?",
         "",
     ]
