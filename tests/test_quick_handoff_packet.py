@@ -83,7 +83,11 @@ def fixture_payload():
             "HPSP 지금 어때?",
             "신호 왔어?",
         ],
-        "current_model_answer": "신호는 보이지만 시장이 약해서 조심해야 합니다.",
+        "current_model_answer": (
+            "Decision: 대기\n"
+            "Setup: unavailable\n"
+            "Reason: 신호는 보이지만 확인이 필요합니다."
+        ),
     }
 
 
@@ -109,6 +113,8 @@ def test_packet_contains_required_sections():
         "## Flow",
         "## Recent Discord conversation excerpt",
         "## Current model answer",
+        "## Current answer guardrail check",
+        "### Guardrail findings",
         "## Required response format",
         "### Required answer template",
         "## Ask ChatGPT",
@@ -204,7 +210,7 @@ def test_packet_includes_excerpt_model_answer_and_questions():
 
     assert "- HPSP 지금 어때?" in packet, packet
     assert "- 신호 왔어?" in packet, packet
-    assert "신호는 보이지만 시장이 약해서 조심해야 합니다." in packet, packet
+    assert "Decision: 대기" in packet, packet
     assert "Start the answer using the required decision-first response format" in packet, packet
     assert "Is the signal valid" in packet, packet
     assert "Is the local intraday decision 진입, 대기, 보류, or 제외?" in packet, packet
@@ -248,6 +254,8 @@ def test_empty_optional_fields_render_unavailable():
     assert "### Missing data\n- unavailable" in packet, packet
     assert "## Recent Discord conversation excerpt\n- unavailable" in packet, packet
     assert "## Current model answer\nunavailable" in packet, packet
+    assert "- Status: unavailable" in packet, packet
+    assert "- current model answer unavailable" in packet, packet
 
     print("  ✓ empty values rendered unavailable")
     return True
@@ -303,6 +311,43 @@ def test_packet_exposes_decision_state_mismatch():
     return True
 
 
+def test_current_answer_guardrail_compliant():
+    print("\n테스트 11: current answer guardrail compliant")
+    packet = build_quick_handoff_packet(fixture_payload())
+
+    assert "## Current answer guardrail check" in packet, packet
+    assert "- Status: compliant" in packet, packet
+    assert "- current model answer follows the required decision-first guardrail" in packet, packet
+    print("  ✓ compliant current answer marked")
+    return True
+
+
+def test_current_answer_guardrail_detects_missing_decision_prefix():
+    print("\n테스트 12: current answer missing Decision prefix detected")
+    payload = fixture_payload()
+    payload["current_model_answer"] = "신호는 보이지만 시장이 약해서 조심해야 합니다."
+
+    packet = build_quick_handoff_packet(payload)
+
+    assert "- Status: violation" in packet, packet
+    assert "- first non-empty line does not start with an allowed Decision prefix" in packet, packet
+    print("  ✓ missing Decision prefix detected")
+    return True
+
+
+def test_current_answer_guardrail_detects_live_execution_wording():
+    print("\n테스트 13: current answer live execution wording detected")
+    payload = fixture_payload()
+    payload["current_model_answer"] = "Decision: 진입\n지금 매수하세요."
+
+    packet = build_quick_handoff_packet(payload)
+
+    assert "- Status: violation" in packet, packet
+    assert "- live execution-style wording detected: 지금 매수" in packet, packet
+    print("  ✓ live execution wording detected")
+    return True
+
+
 def run_all_tests():
     print("=" * 60)
     print("quick_handoff_packet.py fixture tests")
@@ -319,6 +364,9 @@ def run_all_tests():
         test_packet_requires_decision_first_response_format,
         test_packet_marks_decision_state_consistency,
         test_packet_exposes_decision_state_mismatch,
+        test_current_answer_guardrail_compliant,
+        test_current_answer_guardrail_detects_missing_decision_prefix,
+        test_current_answer_guardrail_detects_live_execution_wording,
     ]
 
     passed = 0
