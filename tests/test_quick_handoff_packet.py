@@ -52,7 +52,7 @@ def fixture_payload():
                 "futures_foreign_institutional_flow": "unavailable",
             },
         },
-        "signal_state": "valid_signal",
+        "signal_state": "near_signal",
         "active_strategy": ["RSI_30"],
         "signal_supporting_factors": [
             "RSI 30m is at or below 30",
@@ -129,7 +129,7 @@ def test_packet_includes_route_and_snapshot_values():
         "- Symbol: HPSP",
         "- User question: 신호 왔어?",
         "- Active strategy: RSI_30",
-        "- Signal state: valid_signal",
+        "- Signal state: near_signal",
         "- Intent: signal_review",
         "- Triggers: 신호",
         "- Reply mode: short_review",
@@ -153,6 +153,7 @@ def test_packet_includes_intraday_decision_values():
         "## Intraday decision",
         "- Decision: 대기",
         "- Strength: 보통",
+        "- Decision/state consistency: consistent: near_signal -> 대기",
         "- Summary: Strong or near-signal stock, but current entry is not confirmed. Avoid chase-buying and wait for pullback confirmation.",
         "### Decision reasons\n- 접근 요인: RSI 5m is near the oversold threshold\n- 관찰 전략: RSI_30",
         "### Entry conditions\n- RSI 30m is at or below 30\n- BB 5m pct is near the lower band\n- 전략: RSI_30",
@@ -237,6 +238,7 @@ def test_empty_optional_fields_render_unavailable():
     assert "- Current price: unavailable" in packet, packet
     assert "- Decision: unavailable" in packet, packet
     assert "- Strength: unavailable" in packet, packet
+    assert "- Decision/state consistency: unavailable" in packet, packet
     assert "### Decision reasons\n- unavailable" in packet, packet
     assert "### Entry conditions\n- unavailable" in packet, packet
     assert "### Invalid / wait conditions\n- unavailable" in packet, packet
@@ -277,6 +279,30 @@ def test_packet_requires_decision_first_response_format():
     return True
 
 
+def test_packet_marks_decision_state_consistency():
+    print("\n테스트 9: decision/state consistency marked")
+    packet = build_quick_handoff_packet(fixture_payload())
+
+    assert "- Decision/state consistency: consistent: near_signal -> 대기" in packet, packet
+    print("  ✓ consistent decision/state pair marked")
+    return True
+
+
+def test_packet_exposes_decision_state_mismatch():
+    print("\n테스트 10: decision/state mismatch exposed")
+    payload = fixture_payload()
+    payload["signal_state"] = "valid_signal"
+    payload["intraday_decision"] = "대기"
+
+    packet = build_quick_handoff_packet(payload)
+
+    assert "- Signal state: valid_signal" in packet, packet
+    assert "- Decision: 대기" in packet, packet
+    assert "- Decision/state consistency: inconsistent: valid_signal expects 진입, got 대기" in packet, packet
+    print("  ✓ inconsistent decision/state pair exposed")
+    return True
+
+
 def run_all_tests():
     print("=" * 60)
     print("quick_handoff_packet.py fixture tests")
@@ -291,6 +317,8 @@ def run_all_tests():
         test_packet_includes_excerpt_model_answer_and_questions,
         test_empty_optional_fields_render_unavailable,
         test_packet_requires_decision_first_response_format,
+        test_packet_marks_decision_state_consistency,
+        test_packet_exposes_decision_state_mismatch,
     ]
 
     passed = 0
