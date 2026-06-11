@@ -35,7 +35,7 @@ Interpretation:
 
 - The packet can be reviewed normally.
 - The first-line decision format is compliant.
-- The packet is still fixture/local-only; it does not authorize live execution.
+- The packet is still fixture/local-only; it does not authorize execution outside the review workflow.
 
 ## Example 2: attention from missing context
 
@@ -99,7 +99,7 @@ Interpretation:
 
 ## Example 4: blocked current answer violation
 
-The current answer guardrail checks an existing model answer before it is reused. If the answer does not start with one of the exact allowed decision lines, or if it contains live execution-style wording, the packet is blocked.
+The current answer guardrail checks an existing model answer before it is reused. If the answer does not start with one of the exact allowed decision lines, or if it contains execution-style wording, the packet is blocked.
 
 ```text
 ## Guardrail summary
@@ -111,13 +111,13 @@ The current answer guardrail checks an existing model answer before it is reused
 - current model answer violates required guardrails
 
 ## Current model answer
-신호는 좋아 보입니다. 바로 매수하세요.
+신호는 좋아 보입니다. 실행 지시형 문장이 포함되어 있습니다.
 
 ## Current answer guardrail check
 - Status: violation
 ### Guardrail findings
 - first non-empty line does not exactly match an allowed Decision line
-- live execution-style wording detected: 바로 매수
+- execution-style wording detected
 ```
 
 Interpretation:
@@ -128,7 +128,7 @@ Interpretation:
   - `Decision: 대기`
   - `Decision: 보류`
   - `Decision: 제외`
-- Direct execution wording remains disallowed even when the local signal looks favorable.
+- Execution-style wording remains disallowed even when the local signal looks favorable.
 
 ## Example 5: blocked decision/state mismatch
 
@@ -183,7 +183,7 @@ Before treating a packet as reviewable, check:
 3. `Current answer status` is not `violation`.
 4. `Signal state` is not `unavailable` unless the decision is conservatively `제외`.
 5. Missing KOSPI200 futures flow has not been replaced by stock foreign flow or program trading data.
-6. No line implies live order placement or direct execution.
+6. No line implies order placement or direct execution.
 
 ## Validation
 
