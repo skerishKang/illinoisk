@@ -200,6 +200,14 @@ def _build_invalid_conditions(signal_result: SignalStateResult) -> list[str]:
     return _dedupe(conditions)
 
 
+def _base_stop_reference(signal_result: SignalStateResult) -> str | None:
+    if signal_result.state == "valid_signal":
+        return "RSI 30m <= 30 + BB 하단 근접 시 직전 저점 기준"
+    if signal_result.state == "near_signal":
+        return "RSI 30m 30~35 또는 BB 진입 시 확인 후 설정"
+    return None
+
+
 def _build_stop_reference(
     signal_result: SignalStateResult,
     decision: str,
@@ -209,17 +217,14 @@ def _build_stop_reference(
     if decision != "진입" and decision != "대기":
         return None
 
+    base_reference = _base_stop_reference(signal_result) or "intraday low reference"
     risk_pct = _risk_pct_from_quote(_quote(snapshot))
     if risk_pct is not None:
-        return f"intraday low reference; estimated stop distance {_format_pct(risk_pct)}"
+        return f"{base_reference}; estimated stop distance {_format_pct(risk_pct)}"
 
     # This is a fixture-only module, so we can't compute actual stop prices
     # without a caller-provided quote. Return a descriptive reference.
-    if signal_result.state == "valid_signal":
-        return "RSI 30m <= 30 + BB 하단 근접 시 직전 저점 기준"
-    if signal_result.state == "near_signal":
-        return "RSI 30m 30~35 또는 BB 진입 시 확인 후 설정"
-    return None
+    return base_reference
 
 
 def _build_take_profit_reference(
