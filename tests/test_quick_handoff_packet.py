@@ -97,6 +97,8 @@ def test_packet_contains_required_sections():
 
     required = [
         "# Quick ChatGPT trading review",
+        "## Guardrail summary",
+        "### Summary findings",
         "## Review request",
         "## Intraday decision",
         "### Decision reasons",
@@ -348,6 +350,47 @@ def test_current_answer_guardrail_detects_live_execution_wording():
     return True
 
 
+def test_guardrail_summary_marks_attention_for_missing_data():
+    print("\n테스트 14: guardrail summary attention")
+    packet = build_quick_handoff_packet(fixture_payload())
+
+    assert "## Guardrail summary" in packet, packet
+    assert "- Overall status: attention" in packet, packet
+    assert "- Current answer status: compliant" in packet, packet
+    assert "- signal missing data present: brokerage net quantity unavailable" in packet, packet
+    print("  ✓ attention summary marked")
+    return True
+
+
+def test_guardrail_summary_marks_clear_when_no_findings():
+    print("\n테스트 15: guardrail summary clear")
+    payload = fixture_payload()
+    payload["signal_missing_data"] = []
+
+    packet = build_quick_handoff_packet(payload)
+
+    assert "- Overall status: clear" in packet, packet
+    assert "- all packet guardrail checks are clear" in packet, packet
+    print("  ✓ clear summary marked")
+    return True
+
+
+def test_guardrail_summary_marks_blocked_for_mismatch_and_violation():
+    print("\n테스트 16: guardrail summary blocked")
+    payload = fixture_payload()
+    payload["signal_state"] = "valid_signal"
+    payload["intraday_decision"] = "대기"
+    payload["current_model_answer"] = "신호는 좋아 보입니다."
+
+    packet = build_quick_handoff_packet(payload)
+
+    assert "- Overall status: blocked" in packet, packet
+    assert "- decision/state mismatch: inconsistent: valid_signal expects 진입, got 대기" in packet, packet
+    assert "- current model answer violates required guardrails" in packet, packet
+    print("  ✓ blocked summary marked")
+    return True
+
+
 def run_all_tests():
     print("=" * 60)
     print("quick_handoff_packet.py fixture tests")
@@ -367,6 +410,9 @@ def run_all_tests():
         test_current_answer_guardrail_compliant,
         test_current_answer_guardrail_detects_missing_decision_prefix,
         test_current_answer_guardrail_detects_live_execution_wording,
+        test_guardrail_summary_marks_attention_for_missing_data,
+        test_guardrail_summary_marks_clear_when_no_findings,
+        test_guardrail_summary_marks_blocked_for_mismatch_and_violation,
     ]
 
     passed = 0
