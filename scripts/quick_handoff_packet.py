@@ -35,12 +35,17 @@ LIVE_EXECUTION_TERMS = (
     "주문 넣",
     "시장가",
 )
+EXPECTED_DECISIONS_BY_SIGNAL_STATE = {
+    # valid_signal can be conservatively downgraded by the local risk/reward gate.
+    "valid_signal": ("진입", "대기", "제외"),
+    "near_signal": ("대기",),
+    "conflicted_signal": ("보류",),
+    "invalid_signal": ("제외",),
+    "unavailable": ("제외",),
+}
 EXPECTED_DECISION_BY_SIGNAL_STATE = {
-    "valid_signal": "진입",
-    "near_signal": "대기",
-    "conflicted_signal": "보류",
-    "invalid_signal": "제외",
-    "unavailable": "제외",
+    state: decisions[0]
+    for state, decisions in EXPECTED_DECISIONS_BY_SIGNAL_STATE.items()
 }
 
 
@@ -80,15 +85,6 @@ def _format_value(value: Any) -> str:
     return str(value)
 
 
-def _get_nested(mapping: Mapping[str, Any], *keys: str) -> Any:
-    current: Any = mapping
-    for key in keys:
-        if not isinstance(current, Mapping) or key not in current:
-            return None
-        current = current[key]
-    return current
-
-
 def _format_excerpt(lines: Sequence[str]) -> str:
     if not lines:
         return "- unavailable"
@@ -101,20 +97,23 @@ def _format_bullets(lines: Sequence[str]) -> str:
     return "\n".join(f"- {line}" for line in lines)
 
 
-def _expected_decision_for_signal_state(signal_state: str) -> str | None:
-    return EXPECTED_DECISION_BY_SIGNAL_STATE.get(signal_state)
+def _expected_decisions_for_signal_state(signal_state: str) -> tuple[str, ...]:
+    return EXPECTED_DECISIONS_BY_SIGNAL_STATE.get(signal_state, ())
 
 
 def _format_decision_consistency(data: QuickHandoffInput) -> str:
     signal_state = _format_value(data.signal_state)
     decision = _format_value(data.intraday_decision)
-    expected = _expected_decision_for_signal_state(signal_state)
+    expected = _expected_decisions_for_signal_state(signal_state)
 
-    if expected is None or decision == "unavailable":
+    if not expected or decision == "unavailable":
         return "unavailable"
-    if decision == expected:
-        return f"consistent: {signal_state} -> {decision}"
-    return f"inconsistent: {signal_state} expects {expected}, got {decision}"
+    if decision in expected:
+        default_decision = expected[0]
+        if decision == default_decision:
+            return f"consistent: {signal_state} -> {decision}"
+        return f"risk-adjusted: {signal_state} -> {decision}"
+    return f"inconsistent: {signal_state} expects {'/'.join(expected)}, got {decision}"
 
 
 def _current_answer_guardrail_status(answer: str | None) -> tuple[str, list[str]]:
@@ -328,6 +327,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
 __all__ = [
     "EXPECTED_DECISION_BY_SIGNAL_STATE",
     "EXPECTED_DECISION_PREFIXES",
+    "EXPECTED_DECISIONS_BY_SIGNAL_STATE",
     "FUTURES_UNAVAILABLE_NOTICE",
     "LIVE_EXECUTION_TERMS",
     "QuickHandoffInput",
