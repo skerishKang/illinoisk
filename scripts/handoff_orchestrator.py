@@ -18,6 +18,10 @@ from signal_state_engine import evaluate_signal_state
 from snapshot_schema_validator import require_valid_snapshot_schema
 
 
+QUOTE_GUARD_CURRENT_PRICE_UNAVAILABLE = "current_price unavailable"
+QUOTE_GUARD_SNAPSHOT_AS_OF_UNAVAILABLE = "snapshot as_of unavailable"
+
+
 @dataclass(frozen=True)
 class HandoffOrchestrationInput:
     message: str
@@ -54,6 +58,38 @@ def _snapshot_time(snapshot: Mapping[str, Any]) -> str:
     return str(value) if value else "unavailable"
 
 
+def _is_unavailable(value: Any) -> bool:
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return value.strip().lower() in {"", "unavailable", "none", "null", "n/a"}
+    return False
+
+
+def _as_positive_number(value: Any) -> float | None:
+    if isinstance(value, bool) or _is_unavailable(value):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if number > 0 else None
+
+
+def _quote_guard_missing_data(snapshot: Mapping[str, Any]) -> list[str]:
+    """Return conservative local guard reasons for stale/missing quote data."""
+    missing: list[str] = []
+    quote = snapshot.get("quote", {})
+    quote = quote if isinstance(quote, Mapping) else {}
+
+    if _is_unavailable(snapshot.get("as_of")):
+        missing.append(QUOTE_GUARD_SNAPSHOT_AS_OF_UNAVAILABLE)
+    if _as_positive_number(quote.get("current_price")) is None:
+        missing.append(QUOTE_GUARD_CURRENT_PRICE_UNAVAILABLE)
+
+    return missing
+
+
 def build_handoff_from_message(
     data: HandoffOrchestrationInput | Mapping[str, Any],
 ) -> HandoffOrchestrationResult:
@@ -78,10 +114,18 @@ def build_handoff_from_message(
 
     symbol = route.get("symbol") or data.active_symbol or _snapshot_symbol(snapshot) or "unavailable"
     time_kst = data.time_kst or _snapshot_time(snapshot)
-    signal_state = data.signal_state if data.signal_state is not None else signal_result.state
+    raw_signal_state = data.signal_state if data.signal_state is not None else signal_result.state
     active_strategy = list(data.active_strategy) or list(signal_result.active_strategy)
 
-    effective_signal_result = replace(signal_result, state=signal_state)
+    quote_guard_missing = _quote_guard_missing_data(snapshot)
+    effective_signal_state = "unavailable" if quote_guard_missing else raw_signal_state
+    effective_missing_data = list(signal_result.missing_data) + quote_guard_missing
+
+    effective_signal_result = replace(
+        signal_result,
+        state=effective_signal_state,
+        missing_data=effective_missing_data,
+    )
     intraday_decision = evaluate_intraday_decision(effective_signal_result)
 
     packet_markdown = build_quick_handoff_packet(
@@ -91,12 +135,12 @@ def build_handoff_from_message(
             "user_question": data.message,
             "route": route,
             "snapshot": snapshot,
-            "signal_state": signal_state,
+            "signal_state": effective_signal_state,
             "active_strategy": active_strategy,
             "signal_supporting_factors": list(signal_result.supporting_factors),
             "signal_conflicting_factors": list(signal_result.conflicting_factors),
             "signal_near_factors": list(signal_result.near_factors),
-            "signal_missing_data": list(signal_result.missing_data),
+            "signal_missing_data": effective_missing_data,
             "intraday_decision": intraday_decision.decision,
             "intraday_decision_strength": intraday_decision.strength,
             "intraday_decision_reasons": list(intraday_decision.reasons),
@@ -118,5 +162,7 @@ def build_handoff_from_message(
 __all__ = [
     "HandoffOrchestrationInput",
     "HandoffOrchestrationResult",
+    "QUOTE_GUARD_CURRENT_PRICE_UNAVAILABLE",
+    "QUOTE_GUARD_SNAPSHOT_AS_OF_UNAVAILABLE",
     "build_handoff_from_message",
 ]
