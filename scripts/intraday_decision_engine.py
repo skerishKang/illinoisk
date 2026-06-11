@@ -35,7 +35,11 @@ SIGNAL_TO_DECISION = {
 MAX_STOP_DISTANCE_PCT = 3.0
 MIN_REWARD_RISK_RATIO = 1.0
 LATE_CHASE_HIGH_DISTANCE_PCT = 0.5
-LATE_CHASE_MIN_BOUNCE_FROM_LOW_PCT = 0.5
+# Late-chase is evaluated only after wide-stop and reward/risk exclusion gates.
+# At that point downside is already bounded and reward/risk is favorable, so the
+# chase guard only needs a non-negative stop distance and a very small remaining
+# upside to the known intraday high.
+LATE_CHASE_MIN_BOUNCE_FROM_LOW_PCT = 0.0
 
 
 @dataclass(frozen=True)
