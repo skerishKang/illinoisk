@@ -20,6 +20,16 @@ BASE = Path(__file__).parent.parent
 DB = BASE / "DB" / "conversations.db"
 CONV_DIR = BASE / "conversations"
 
+SUMMARY_ONLY_MARKERS = (
+    "대화 핵심 요약",
+    "주요 대화 흐름",
+    "오늘 장세 데이터",
+    "시스템 개선 완료 사항",
+    "세션 ID",
+    "자동 저장",
+    "Hermes 세션 DB",
+)
+
 def get_conn():
     DB.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB)
@@ -89,6 +99,23 @@ def find_md_file(date_str):
         return file_path
     return None
 
+def _extract_topic(content):
+    for line in content.split('\n'):
+        if line.startswith('## '):
+            return line[3:].strip()
+    return ""
+
+def _looks_like_summary_only_record(content, date_str):
+    stripped = content.strip()
+    if not stripped:
+        return False
+    if date_str not in stripped[:500] and not stripped.startswith("# "):
+        return False
+    return any(marker in stripped for marker in SUMMARY_ONLY_MARKERS)
+
+def _summary_only_message(content):
+    return content.strip()
+
 def parse_markdown_conversation(content, date_str):
     """
     마크다운 대화 전문 파싱
@@ -105,17 +132,17 @@ def parse_markdown_conversation(content, date_str):
     ### [09:47:23] 🤖 Hermes
     내용
     
+    요약형 일지 포맷 (Summary-only fallback):
+    발화 마커가 없지만 대화 핵심 요약/주요 대화 흐름/세션 정보 등으로
+    구성된 날짜별 일지는 Agent 메시지 1건으로 import한다.
+    
     정규화 규칙:
     - 사용자 / user / 🧑‍💻 사용자 → 박사님
     - Hermes / Agent / assistant / 🤖 Hermes → Agent
     """
     messages = []
     # 헤더(## ) 추출로 topic 결정
-    topic = ""
-    for line in content.split('\n'):
-        if line.startswith('## '):
-            topic = line[3:].strip()
-            break
+    topic = _extract_topic(content)
     
     # 표준 포맷 패턴: **박사님:** 또는 **Agent:** 마커
     standard_pattern = re.compile(r'^\*\*(박사님|Agent):\*\*\s*(.*)$')
@@ -169,6 +196,12 @@ def parse_markdown_conversation(content, date_str):
         messages.append({
             'speaker': current_speaker,
             'message': '\n'.join(current_message).strip()
+        })
+    
+    if not messages and _looks_like_summary_only_record(content, date_str):
+        messages.append({
+            'speaker': 'Agent',
+            'message': _summary_only_message(content)
         })
     
     return messages, topic
