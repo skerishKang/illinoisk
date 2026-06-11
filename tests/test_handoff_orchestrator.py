@@ -238,6 +238,57 @@ def test_orchestrator_preserves_explicit_signal_state_override():
     return True
 
 
+def test_missing_current_price_forces_unavailable_decision_even_with_manual_valid_signal():
+    print("\n테스트 10: missing current price forces unavailable decision")
+    snapshot = fixture_snapshot()
+    snapshot["quote"]["current_price"] = None
+
+    result = build_handoff_from_message(
+        {
+            "message": "HPSP 신호 왔어?",
+            "snapshot": snapshot,
+            "signal_state": "valid_signal",
+            "active_strategy": ["MANUAL_VALID"],
+        }
+    )
+
+    assert "- Signal state: unavailable" in result.packet_markdown, result.packet_markdown
+    assert "- Decision: 제외" in result.packet_markdown, result.packet_markdown
+    assert "current_price unavailable" in result.packet_markdown, result.packet_markdown
+    assert "## Signal detail" in result.packet_markdown, result.packet_markdown
+    print("  ✓ missing current price overrides manual valid signal")
+    return True
+
+
+def test_missing_snapshot_as_of_forces_unavailable_decision_even_with_valid_indicators():
+    print("\n테스트 11: missing snapshot as_of forces unavailable decision")
+    snapshot = build_fixture_snapshot(
+        indicator_overrides={
+            "rsi_1m": 42.0,
+            "rsi_5m": 38.0,
+            "rsi_30m": 29.7,
+            "bb_5m_pct": 0.18,
+            "bb_30m_pct": 0.40,
+            "moving_average_state": "below_short_ma",
+        }
+    )
+    snapshot["as_of"] = "unavailable"
+
+    result = build_handoff_from_message(
+        {
+            "message": "HPSP 신호 왔어?",
+            "snapshot": snapshot,
+        }
+    )
+
+    assert "- Signal state: unavailable" in result.packet_markdown, result.packet_markdown
+    assert "- Decision: 제외" in result.packet_markdown, result.packet_markdown
+    assert "snapshot as_of unavailable" in result.packet_markdown, result.packet_markdown
+    assert "### Supporting factors\n- RSI 30m is at or below 30" in result.packet_markdown, result.packet_markdown
+    print("  ✓ missing snapshot time prevents actionable decision")
+    return True
+
+
 def run_all_tests():
     print("=" * 60)
     print("handoff_orchestrator.py fixture tests")
@@ -253,6 +304,8 @@ def run_all_tests():
         test_orchestrator_auto_populates_signal_state_and_intraday_decision_from_snapshot,
         test_orchestrator_near_signal_renders_wait_not_chase_buying,
         test_orchestrator_preserves_explicit_signal_state_override,
+        test_missing_current_price_forces_unavailable_decision_even_with_manual_valid_signal,
+        test_missing_snapshot_as_of_forces_unavailable_decision_even_with_valid_indicators,
     ]
 
     passed = 0
