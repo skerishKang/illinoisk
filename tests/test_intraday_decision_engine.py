@@ -105,7 +105,7 @@ def test_valid_signal_with_acceptable_risk_reward_stays_진입():
 
     assert result.decision == "진입", result
     assert any("risk/reward gate passed" in c for c in result.entry_conditions), result
-    assert result.stop_reference == "intraday low reference; estimated stop distance 1.40%", result
+    assert result.stop_reference == "RSI 30m <= 30 + BB 하단 근접 시 직전 저점 기준; estimated stop distance 1.40%", result
     assert result.take_profit_reference == "recent intraday high reference; estimated upside 3.20%", result
     print("  ✓ risk/reward gate passed and references rendered")
     return True
@@ -125,7 +125,7 @@ def test_late_chase_valid_signal_downgrades_to_대기():
     assert result.decision == "대기", result
     assert any("당일 고점 근처 추격" in reason for reason in result.reasons), result
     assert any("late-chase guard" in item for item in result.invalid_conditions), result
-    assert result.stop_reference == "intraday low reference; estimated stop distance 1.80%", result
+    assert result.stop_reference == "RSI 30m <= 30 + BB 하단 근접 시 직전 저점 기준; estimated stop distance 1.80%", result
     assert result.take_profit_reference == "recent intraday high reference; estimated upside 0.30%", result
     print("  ✓ late-chase guard waits instead of entering")
     return True
@@ -310,7 +310,6 @@ def test_all_signal_states_mapped():
 
 def test_dedupe_in_output_lists():
     print("\n테스트 12: output lists are deduplicated")
-    # Create a snapshot that would produce duplicate factors
     snapshot = build_fixture_snapshot(
         indicator_overrides={
             "rsi_1m": 29.0,
@@ -330,7 +329,6 @@ def test_dedupe_in_output_lists():
     signal_result = evaluate_signal_state(snapshot)
     result = evaluate_intraday_decision(signal_result, snapshot=snapshot)
 
-    # Check no duplicates in lists
     for field_name in ["reasons", "missing_data", "entry_conditions", "invalid_conditions"]:
         field_value = getattr(result, field_name)
         assert len(field_value) == len(set(field_value)), f"Duplicates in {field_name}: {field_value}"
