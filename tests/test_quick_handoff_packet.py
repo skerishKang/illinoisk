@@ -64,6 +64,21 @@ def fixture_payload():
             "brokerage net quantity unavailable",
             "futures foreign/institutional flow is unavailable and was not substituted.",
         ],
+        "intraday_decision": "대기",
+        "intraday_decision_strength": "보통",
+        "intraday_decision_reasons": [
+            "접근 요인: RSI 5m is near the oversold threshold",
+            "관찰 전략: RSI_30",
+        ],
+        "intraday_entry_conditions": [
+            "RSI 30m is at or below 30",
+            "BB 5m pct is near the lower band",
+            "전략: RSI_30",
+        ],
+        "intraday_invalid_conditions": [
+            "brokerage net quantity unavailable",
+        ],
+        "intraday_stop_reference": "RSI 30m 30~35 또는 BB 진입 시 확인 후 설정",
         "recent_discord_excerpt": [
             "HPSP 지금 어때?",
             "신호 왔어?",
@@ -79,6 +94,10 @@ def test_packet_contains_required_sections():
     required = [
         "# Quick ChatGPT trading review",
         "## Review request",
+        "## Intraday decision",
+        "### Decision reasons",
+        "### Entry conditions",
+        "### Invalid / wait conditions",
         "## Signal detail",
         "### Supporting factors",
         "### Conflicting factors",
@@ -124,8 +143,29 @@ def test_packet_includes_route_and_snapshot_values():
     return True
 
 
+def test_packet_includes_intraday_decision_values():
+    print("\n테스트 3: intraday decision values")
+    packet = build_quick_handoff_packet(fixture_payload())
+
+    required = [
+        "## Intraday decision",
+        "- Decision: 대기",
+        "- Strength: 보통",
+        "- Summary: Strong or near-signal stock, but current entry is not confirmed. Avoid chase-buying and wait for pullback confirmation.",
+        "### Decision reasons\n- 접근 요인: RSI 5m is near the oversold threshold\n- 관찰 전략: RSI_30",
+        "### Entry conditions\n- RSI 30m is at or below 30\n- BB 5m pct is near the lower band\n- 전략: RSI_30",
+        "### Invalid / wait conditions\n- brokerage net quantity unavailable",
+        "- Stop reference: RSI 30m 30~35 또는 BB 진입 시 확인 후 설정",
+    ]
+    for text in required:
+        assert text in packet, f"missing intraday decision: {text}"
+
+    print("  ✓ intraday decision details present")
+    return True
+
+
 def test_packet_includes_signal_detail_values():
-    print("\n테스트 3: signal detail values")
+    print("\n테스트 4: signal detail values")
     packet = build_quick_handoff_packet(fixture_payload())
 
     required = [
@@ -144,7 +184,7 @@ def test_packet_includes_signal_detail_values():
 
 
 def test_packet_preserves_unavailable_values():
-    print("\n테스트 4: unavailable values are explicit")
+    print("\n테스트 5: unavailable values are explicit")
     packet = build_quick_handoff_packet(fixture_payload())
 
     assert "- Brokerage net quantity: unavailable" in packet, packet
@@ -156,21 +196,23 @@ def test_packet_preserves_unavailable_values():
 
 
 def test_packet_includes_excerpt_model_answer_and_questions():
-    print("\n테스트 5: excerpt, model answer, and questions")
+    print("\n테스트 6: excerpt, model answer, and questions")
     packet = build_quick_handoff_packet(fixture_payload())
 
     assert "- HPSP 지금 어때?" in packet, packet
     assert "- 신호 왔어?" in packet, packet
     assert "신호는 보이지만 시장이 약해서 조심해야 합니다." in packet, packet
     assert "Is the signal valid" in packet, packet
-    assert "What should be checked before the user decides?" in packet, packet
+    assert "Is the local intraday decision 진입, 대기, 보류, or 제외?" in packet, packet
+    assert "chase-buying zone" in packet, packet
+    assert "What entry, invalidation, and stop conditions" in packet, packet
 
     print("  ✓ excerpt, model answer, and questions present")
     return True
 
 
 def test_empty_optional_fields_render_unavailable():
-    print("\n테스트 6: empty optional fields render unavailable")
+    print("\n테스트 7: empty optional fields render unavailable")
     payload = fixture_payload()
     payload["active_strategy"] = []
     payload["recent_discord_excerpt"] = []
@@ -178,12 +220,24 @@ def test_empty_optional_fields_render_unavailable():
     payload["signal_supporting_factors"] = []
     payload["signal_near_factors"] = []
     payload["signal_missing_data"] = []
+    payload["intraday_decision"] = "unavailable"
+    payload["intraday_decision_strength"] = "unavailable"
+    payload["intraday_decision_reasons"] = []
+    payload["intraday_entry_conditions"] = []
+    payload["intraday_invalid_conditions"] = []
+    payload["intraday_stop_reference"] = None
     payload["snapshot"]["quote"]["current_price"] = None
 
     packet = build_quick_handoff_packet(payload)
 
     assert "- Active strategy: unavailable" in packet, packet
     assert "- Current price: unavailable" in packet, packet
+    assert "- Decision: unavailable" in packet, packet
+    assert "- Strength: unavailable" in packet, packet
+    assert "### Decision reasons\n- unavailable" in packet, packet
+    assert "### Entry conditions\n- unavailable" in packet, packet
+    assert "### Invalid / wait conditions\n- unavailable" in packet, packet
+    assert "- Stop reference: unavailable" in packet, packet
     assert "### Supporting factors\n- unavailable" in packet, packet
     assert "### Near factors\n- unavailable" in packet, packet
     assert "### Missing data\n- unavailable" in packet, packet
@@ -202,6 +256,7 @@ def run_all_tests():
     tests = [
         test_packet_contains_required_sections,
         test_packet_includes_route_and_snapshot_values,
+        test_packet_includes_intraday_decision_values,
         test_packet_includes_signal_detail_values,
         test_packet_preserves_unavailable_values,
         test_packet_includes_excerpt_model_answer_and_questions,

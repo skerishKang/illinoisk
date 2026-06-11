@@ -8,10 +8,11 @@ data, or call models.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Mapping, Sequence
 
 from discord_trigger_router import route_message
+from intraday_decision_engine import evaluate_intraday_decision
 from quick_handoff_packet import build_quick_handoff_packet
 from signal_state_engine import evaluate_signal_state
 from snapshot_schema_validator import require_valid_snapshot_schema
@@ -60,7 +61,8 @@ def build_handoff_from_message(
 
     The orchestration is deterministic and fixture-only. It validates the
     caller-provided snapshot, then calls `route_message()`, evaluates the local
-    signal state, and calls `build_quick_handoff_packet()` with local data only.
+    signal state and intraday decision, and calls `build_quick_handoff_packet()`
+    with local data only.
     """
     if isinstance(data, Mapping):
         data = HandoffOrchestrationInput(**data)
@@ -79,6 +81,9 @@ def build_handoff_from_message(
     signal_state = data.signal_state if data.signal_state is not None else signal_result.state
     active_strategy = list(data.active_strategy) or list(signal_result.active_strategy)
 
+    effective_signal_result = replace(signal_result, state=signal_state)
+    intraday_decision = evaluate_intraday_decision(effective_signal_result)
+
     packet_markdown = build_quick_handoff_packet(
         {
             "time_kst": time_kst,
@@ -92,6 +97,12 @@ def build_handoff_from_message(
             "signal_conflicting_factors": list(signal_result.conflicting_factors),
             "signal_near_factors": list(signal_result.near_factors),
             "signal_missing_data": list(signal_result.missing_data),
+            "intraday_decision": intraday_decision.decision,
+            "intraday_decision_strength": intraday_decision.strength,
+            "intraday_decision_reasons": list(intraday_decision.reasons),
+            "intraday_entry_conditions": list(intraday_decision.entry_conditions),
+            "intraday_invalid_conditions": list(intraday_decision.invalid_conditions),
+            "intraday_stop_reference": intraday_decision.stop_reference,
             "recent_discord_excerpt": list(data.recent_messages),
             "current_model_answer": data.current_model_answer,
         }
