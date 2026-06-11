@@ -40,6 +40,8 @@ def test_orchestrator_routes_recent_symbol_followup():
     assert "- Symbol: HPSP" in result.packet_markdown, result.packet_markdown
     assert "- Signal state: valid_signal" in result.packet_markdown, result.packet_markdown
     assert "- Active strategy: RSI_30" in result.packet_markdown, result.packet_markdown
+    assert "## Intraday decision" in result.packet_markdown, result.packet_markdown
+    assert "- Decision:" in result.packet_markdown, result.packet_markdown
     assert "- HPSP 지금 어때?" in result.packet_markdown, result.packet_markdown
     print("  ✓ follow-up routed and packet generated")
     return True
@@ -61,6 +63,7 @@ def test_orchestrator_prefers_explicit_symbol_over_snapshot_symbol():
     assert result.route["intent"] == "entry_check", result.route
     assert "- Symbol: ISC" in result.packet_markdown, result.packet_markdown
     assert "- Signal state: near_signal" in result.packet_markdown, result.packet_markdown
+    assert "## Intraday decision" in result.packet_markdown, result.packet_markdown
     print("  ✓ explicit symbol used")
     return True
 
@@ -114,6 +117,7 @@ def test_orchestrator_to_dict_shape():
     assert result["symbol"] == "HPSP", result
     assert result["route"]["intent"] == "stop_check", result
     assert "# Quick ChatGPT trading review" in result["packet_markdown"], result
+    assert "## Intraday decision" in result["packet_markdown"], result
     print("  ✓ result dict shape stable")
     return True
 
@@ -139,8 +143,8 @@ def test_orchestrator_rejects_invalid_snapshot():
     raise AssertionError("expected snapshot validation error")
 
 
-def test_orchestrator_auto_populates_signal_state_from_snapshot():
-    print("\n테스트 7: auto signal state from fixture snapshot")
+def test_orchestrator_auto_populates_signal_state_and_intraday_decision_from_snapshot():
+    print("\n테스트 7: auto signal state and intraday decision from fixture snapshot")
     snapshot = build_fixture_snapshot(
         indicator_overrides={
             "rsi_1m": 42.0,
@@ -166,17 +170,54 @@ def test_orchestrator_auto_populates_signal_state_from_snapshot():
 
     assert "- Signal state: valid_signal" in result.packet_markdown, result.packet_markdown
     assert "- Active strategy: RSI_30, BB_5M_LOWER" in result.packet_markdown, result.packet_markdown
+    assert "## Intraday decision" in result.packet_markdown, result.packet_markdown
+    assert "- Decision: 진입" in result.packet_markdown, result.packet_markdown
+    assert "- Strength:" in result.packet_markdown, result.packet_markdown
+    assert "### Decision reasons" in result.packet_markdown, result.packet_markdown
+    assert "지원 요인: RSI 30m is at or below 30" in result.packet_markdown, result.packet_markdown
+    assert "### Entry conditions" in result.packet_markdown, result.packet_markdown
+    assert "전략: RSI_30" in result.packet_markdown, result.packet_markdown
+    assert "- Stop reference: RSI 30m <= 30 + BB 하단 근접 시 직전 저점 기준" in result.packet_markdown, result.packet_markdown
     assert "## Signal detail" in result.packet_markdown, result.packet_markdown
     assert "### Supporting factors\n- RSI 30m is at or below 30" in result.packet_markdown, result.packet_markdown
     assert "- BB 5m pct is near the lower band" in result.packet_markdown, result.packet_markdown
     assert "### Missing data" in result.packet_markdown, result.packet_markdown
     assert "- futures foreign/institutional flow is unavailable and was not substituted." in result.packet_markdown, result.packet_markdown
-    print("  ✓ signal state and detail computed from local snapshot")
+    print("  ✓ signal state, decision, and detail computed from local snapshot")
+    return True
+
+
+def test_orchestrator_near_signal_renders_wait_not_chase_buying():
+    print("\n테스트 8: near signal renders 대기 and chase-buying caution")
+    snapshot = build_fixture_snapshot(
+        indicator_overrides={
+            "rsi_1m": 48.0,
+            "rsi_5m": 34.5,
+            "rsi_30m": 45.0,
+            "bb_5m_pct": 0.30,
+            "bb_30m_pct": 0.50,
+            "moving_average_state": "below_short_ma",
+        }
+    )
+
+    result = build_handoff_from_message(
+        {
+            "message": "HPSP 진입 가능?",
+            "snapshot": snapshot,
+        }
+    )
+
+    assert "- Signal state: near_signal" in result.packet_markdown, result.packet_markdown
+    assert "- Decision: 대기" in result.packet_markdown, result.packet_markdown
+    assert "Avoid chase-buying and wait for pullback confirmation" in result.packet_markdown, result.packet_markdown
+    assert "### Entry conditions" in result.packet_markdown, result.packet_markdown
+    assert "- Stop reference: RSI 30m 30~35 또는 BB 진입 시 확인 후 설정" in result.packet_markdown, result.packet_markdown
+    print("  ✓ near signal asks user to wait instead of chase-buying")
     return True
 
 
 def test_orchestrator_preserves_explicit_signal_state_override():
-    print("\n테스트 8: explicit signal state override preserved")
+    print("\n테스트 9: explicit signal state override preserved")
     result = build_handoff_from_message(
         {
             "message": "HPSP 신호 왔어?",
@@ -188,9 +229,10 @@ def test_orchestrator_preserves_explicit_signal_state_override():
 
     assert "- Signal state: conflicted_signal" in result.packet_markdown, result.packet_markdown
     assert "- Active strategy: MANUAL_REVIEW" in result.packet_markdown, result.packet_markdown
+    assert "## Intraday decision" in result.packet_markdown, result.packet_markdown
     assert "## Signal detail" in result.packet_markdown, result.packet_markdown
     assert "### Missing data" in result.packet_markdown, result.packet_markdown
-    print("  ✓ explicit signal fields preserved while detail remains available")
+    print("  ✓ explicit signal fields preserved while computed decision/detail remain available")
     return True
 
 
@@ -206,7 +248,8 @@ def run_all_tests():
         test_orchestrator_preserves_unavailable_flow_notice,
         test_orchestrator_to_dict_shape,
         test_orchestrator_rejects_invalid_snapshot,
-        test_orchestrator_auto_populates_signal_state_from_snapshot,
+        test_orchestrator_auto_populates_signal_state_and_intraday_decision_from_snapshot,
+        test_orchestrator_near_signal_renders_wait_not_chase_buying,
         test_orchestrator_preserves_explicit_signal_state_override,
     ]
 
