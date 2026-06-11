@@ -17,6 +17,14 @@ FUTURES_UNAVAILABLE_NOTICE = (
     "flow or program trading data for it."
 )
 
+EXPECTED_DECISION_BY_SIGNAL_STATE = {
+    "valid_signal": "진입",
+    "near_signal": "대기",
+    "conflicted_signal": "보류",
+    "invalid_signal": "제외",
+    "unavailable": "제외",
+}
+
 
 @dataclass(frozen=True)
 class QuickHandoffInput:
@@ -74,6 +82,22 @@ def _format_bullets(lines: Sequence[str]) -> str:
     return "\n".join(f"- {line}" for line in lines)
 
 
+def _expected_decision_for_signal_state(signal_state: str) -> str | None:
+    return EXPECTED_DECISION_BY_SIGNAL_STATE.get(signal_state)
+
+
+def _format_decision_consistency(data: QuickHandoffInput) -> str:
+    signal_state = _format_value(data.signal_state)
+    decision = _format_value(data.intraday_decision)
+    expected = _expected_decision_for_signal_state(signal_state)
+
+    if expected is None or decision == "unavailable":
+        return "unavailable"
+    if decision == expected:
+        return f"consistent: {signal_state} -> {decision}"
+    return f"inconsistent: {signal_state} expects {expected}, got {decision}"
+
+
 def _format_intraday_decision_summary(data: QuickHandoffInput) -> str:
     """Return a deterministic one-line action summary for the decision section."""
     decision = _format_value(data.intraday_decision)
@@ -121,6 +145,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         "## Intraday decision",
         f"- Decision: {_format_value(data.intraday_decision)}",
         f"- Strength: {_format_value(data.intraday_decision_strength)}",
+        f"- Decision/state consistency: {_format_decision_consistency(data)}",
         f"- Summary: {_format_intraday_decision_summary(data)}",
         "### Decision reasons",
         _format_bullets(data.intraday_decision_reasons),
@@ -213,6 +238,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
 
 
 __all__ = [
+    "EXPECTED_DECISION_BY_SIGNAL_STATE",
     "FUTURES_UNAVAILABLE_NOTICE",
     "QuickHandoffInput",
     "build_quick_handoff_packet",
