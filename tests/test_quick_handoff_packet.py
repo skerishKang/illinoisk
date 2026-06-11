@@ -79,6 +79,7 @@ def fixture_payload():
             "brokerage net quantity unavailable",
         ],
         "intraday_stop_reference": "RSI 30m 30~35 또는 BB 진입 시 확인 후 설정",
+        "intraday_take_profit_reference": "recent intraday high reference; estimated upside 2.10%",
         "recent_discord_excerpt": [
             "HPSP 지금 어때?",
             "신호 왔어?",
@@ -167,6 +168,7 @@ def test_packet_includes_intraday_decision_values():
         "### Entry conditions\n- RSI 30m is at or below 30\n- BB 5m pct is near the lower band\n- 전략: RSI_30",
         "### Invalid / wait conditions\n- brokerage net quantity unavailable",
         "- Stop reference: RSI 30m 30~35 또는 BB 진입 시 확인 후 설정",
+        "- Take-profit reference: recent intraday high reference; estimated upside 2.10%",
     ]
     for text in required:
         assert text in packet, f"missing intraday decision: {text}"
@@ -217,7 +219,7 @@ def test_packet_includes_excerpt_model_answer_and_questions():
     assert "Is the signal valid" in packet, packet
     assert "Is the local intraday decision 진입, 대기, 보류, or 제외?" in packet, packet
     assert "chase-buying zone" in packet, packet
-    assert "What entry, invalidation, and stop conditions" in packet, packet
+    assert "What entry, invalidation, stop, and take-profit conditions" in packet, packet
 
     print("  ✓ excerpt, model answer, and questions present")
     return True
@@ -238,6 +240,7 @@ def test_empty_optional_fields_render_unavailable():
     payload["intraday_entry_conditions"] = []
     payload["intraday_invalid_conditions"] = []
     payload["intraday_stop_reference"] = None
+    payload["intraday_take_profit_reference"] = None
     payload["snapshot"]["quote"]["current_price"] = None
 
     packet = build_quick_handoff_packet(payload)
@@ -251,6 +254,7 @@ def test_empty_optional_fields_render_unavailable():
     assert "### Entry conditions\n- unavailable" in packet, packet
     assert "### Invalid / wait conditions\n- unavailable" in packet, packet
     assert "- Stop reference: unavailable" in packet, packet
+    assert "- Take-profit reference: unavailable" in packet, packet
     assert "### Supporting factors\n- unavailable" in packet, packet
     assert "### Near factors\n- unavailable" in packet, packet
     assert "### Missing data\n- unavailable" in packet, packet
@@ -272,7 +276,7 @@ def test_packet_requires_decision_first_response_format():
         "- The first line must start with exactly one of: `Decision: 진입`, `Decision: 대기`, `Decision: 보류`, `Decision: 제외`.",
         "- Do not answer with only a vague strength comment such as `strong stock`, `looks good`, or `watch it`.",
         "- State whether the current setup is `chase-buying`, `confirmed pullback`, `conflicted`, or `unavailable`.",
-        "- Then provide short sections: `Reason`, `Entry conditions`, `Invalid / wait conditions`, and `Stop reference`.",
+        "- Then provide short sections: `Reason`, `Entry conditions`, `Invalid / wait conditions`, `Stop reference`, and `Take-profit reference`.",
         "- Do not recommend or imply live trade execution; keep the output as local analysis for the user's decision.",
         "### Required answer template",
         "Decision: 진입|대기|보류|제외",
@@ -281,6 +285,7 @@ def test_packet_requires_decision_first_response_format():
         "Entry conditions:\n- <condition or unavailable>",
         "Invalid / wait conditions:\n- <condition or unavailable>",
         "Stop reference: <reference or unavailable>",
+        "Take-profit reference: <reference or unavailable>",
     ]
     for text in required:
         assert text in packet, f"missing required response format: {text}"
@@ -298,8 +303,8 @@ def test_packet_marks_decision_state_consistency():
     return True
 
 
-def test_packet_exposes_decision_state_mismatch():
-    print("\n테스트 10: decision/state mismatch exposed")
+def test_packet_marks_valid_signal_risk_adjusted_decision():
+    print("\n테스트 10: valid_signal risk-adjusted decision marked")
     payload = fixture_payload()
     payload["signal_state"] = "valid_signal"
     payload["intraday_decision"] = "대기"
@@ -308,13 +313,28 @@ def test_packet_exposes_decision_state_mismatch():
 
     assert "- Signal state: valid_signal" in packet, packet
     assert "- Decision: 대기" in packet, packet
-    assert "- Decision/state consistency: inconsistent: valid_signal expects 진입, got 대기" in packet, packet
+    assert "- Decision/state consistency: risk-adjusted: valid_signal -> 대기" in packet, packet
+    print("  ✓ risk-adjusted valid_signal decision marked")
+    return True
+
+
+def test_packet_exposes_decision_state_mismatch():
+    print("\n테스트 11: decision/state mismatch exposed")
+    payload = fixture_payload()
+    payload["signal_state"] = "valid_signal"
+    payload["intraday_decision"] = "보류"
+
+    packet = build_quick_handoff_packet(payload)
+
+    assert "- Signal state: valid_signal" in packet, packet
+    assert "- Decision: 보류" in packet, packet
+    assert "- Decision/state consistency: inconsistent: valid_signal expects 진입/대기/제외, got 보류" in packet, packet
     print("  ✓ inconsistent decision/state pair exposed")
     return True
 
 
 def test_current_answer_guardrail_compliant():
-    print("\n테스트 11: current answer guardrail compliant")
+    print("\n테스트 12: current answer guardrail compliant")
     packet = build_quick_handoff_packet(fixture_payload())
 
     assert "## Current answer guardrail check" in packet, packet
@@ -325,7 +345,7 @@ def test_current_answer_guardrail_compliant():
 
 
 def test_current_answer_guardrail_detects_missing_decision_prefix():
-    print("\n테스트 12: current answer missing Decision prefix detected")
+    print("\n테스트 13: current answer missing Decision prefix detected")
     payload = fixture_payload()
     payload["current_model_answer"] = "신호는 보이지만 시장이 약해서 조심해야 합니다."
 
@@ -338,7 +358,7 @@ def test_current_answer_guardrail_detects_missing_decision_prefix():
 
 
 def test_current_answer_guardrail_detects_live_execution_wording():
-    print("\n테스트 13: current answer live execution wording detected")
+    print("\n테스트 14: current answer live execution wording detected")
     payload = fixture_payload()
     payload["current_model_answer"] = "Decision: 진입\n지금 매수하세요."
 
@@ -351,7 +371,7 @@ def test_current_answer_guardrail_detects_live_execution_wording():
 
 
 def test_guardrail_summary_marks_attention_for_missing_data():
-    print("\n테스트 14: guardrail summary attention")
+    print("\n테스트 15: guardrail summary attention")
     packet = build_quick_handoff_packet(fixture_payload())
 
     assert "## Guardrail summary" in packet, packet
@@ -363,7 +383,7 @@ def test_guardrail_summary_marks_attention_for_missing_data():
 
 
 def test_guardrail_summary_marks_clear_when_no_findings():
-    print("\n테스트 15: guardrail summary clear")
+    print("\n테스트 16: guardrail summary clear")
     payload = fixture_payload()
     payload["signal_missing_data"] = []
 
@@ -376,16 +396,16 @@ def test_guardrail_summary_marks_clear_when_no_findings():
 
 
 def test_guardrail_summary_marks_blocked_for_mismatch_and_violation():
-    print("\n테스트 16: guardrail summary blocked")
+    print("\n테스트 17: guardrail summary blocked")
     payload = fixture_payload()
     payload["signal_state"] = "valid_signal"
-    payload["intraday_decision"] = "대기"
+    payload["intraday_decision"] = "보류"
     payload["current_model_answer"] = "신호는 좋아 보입니다."
 
     packet = build_quick_handoff_packet(payload)
 
     assert "- Overall status: blocked" in packet, packet
-    assert "- decision/state mismatch: inconsistent: valid_signal expects 진입, got 대기" in packet, packet
+    assert "- decision/state mismatch: inconsistent: valid_signal expects 진입/대기/제외, got 보류" in packet, packet
     assert "- current model answer violates required guardrails" in packet, packet
     print("  ✓ blocked summary marked")
     return True
@@ -406,6 +426,7 @@ def run_all_tests():
         test_empty_optional_fields_render_unavailable,
         test_packet_requires_decision_first_response_format,
         test_packet_marks_decision_state_consistency,
+        test_packet_marks_valid_signal_risk_adjusted_decision,
         test_packet_exposes_decision_state_mismatch,
         test_current_answer_guardrail_compliant,
         test_current_answer_guardrail_detects_missing_decision_prefix,

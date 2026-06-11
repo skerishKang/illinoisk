@@ -35,12 +35,17 @@ LIVE_EXECUTION_TERMS = (
     "주문 넣",
     "시장가",
 )
+EXPECTED_DECISIONS_BY_SIGNAL_STATE = {
+    # valid_signal can be conservatively downgraded by the local risk/reward gate.
+    "valid_signal": ("진입", "대기", "제외"),
+    "near_signal": ("대기",),
+    "conflicted_signal": ("보류",),
+    "invalid_signal": ("제외",),
+    "unavailable": ("제외",),
+}
 EXPECTED_DECISION_BY_SIGNAL_STATE = {
-    "valid_signal": "진입",
-    "near_signal": "대기",
-    "conflicted_signal": "보류",
-    "invalid_signal": "제외",
-    "unavailable": "제외",
+    state: decisions[0]
+    for state, decisions in EXPECTED_DECISIONS_BY_SIGNAL_STATE.items()
 }
 
 
@@ -63,6 +68,7 @@ class QuickHandoffInput:
     intraday_entry_conditions: Sequence[str] = field(default_factory=list)
     intraday_invalid_conditions: Sequence[str] = field(default_factory=list)
     intraday_stop_reference: str | None = None
+    intraday_take_profit_reference: str | None = None
     recent_discord_excerpt: Sequence[str] = field(default_factory=list)
     current_model_answer: str | None = None
 
@@ -79,15 +85,6 @@ def _format_value(value: Any) -> str:
     return str(value)
 
 
-def _get_nested(mapping: Mapping[str, Any], *keys: str) -> Any:
-    current: Any = mapping
-    for key in keys:
-        if not isinstance(current, Mapping) or key not in current:
-            return None
-        current = current[key]
-    return current
-
-
 def _format_excerpt(lines: Sequence[str]) -> str:
     if not lines:
         return "- unavailable"
@@ -100,20 +97,23 @@ def _format_bullets(lines: Sequence[str]) -> str:
     return "\n".join(f"- {line}" for line in lines)
 
 
-def _expected_decision_for_signal_state(signal_state: str) -> str | None:
-    return EXPECTED_DECISION_BY_SIGNAL_STATE.get(signal_state)
+def _expected_decisions_for_signal_state(signal_state: str) -> tuple[str, ...]:
+    return EXPECTED_DECISIONS_BY_SIGNAL_STATE.get(signal_state, ())
 
 
 def _format_decision_consistency(data: QuickHandoffInput) -> str:
     signal_state = _format_value(data.signal_state)
     decision = _format_value(data.intraday_decision)
-    expected = _expected_decision_for_signal_state(signal_state)
+    expected = _expected_decisions_for_signal_state(signal_state)
 
-    if expected is None or decision == "unavailable":
+    if not expected or decision == "unavailable":
         return "unavailable"
-    if decision == expected:
-        return f"consistent: {signal_state} -> {decision}"
-    return f"inconsistent: {signal_state} expects {expected}, got {decision}"
+    if decision in expected:
+        default_decision = expected[0]
+        if decision == default_decision:
+            return f"consistent: {signal_state} -> {decision}"
+        return f"risk-adjusted: {signal_state} -> {decision}"
+    return f"inconsistent: {signal_state} expects {'/'.join(expected)}, got {decision}"
 
 
 def _current_answer_guardrail_status(answer: str | None) -> tuple[str, list[str]]:
@@ -171,13 +171,13 @@ def _format_intraday_decision_summary(data: QuickHandoffInput) -> str:
     """Return a deterministic one-line action summary for the decision section."""
     decision = _format_value(data.intraday_decision)
     if decision == "진입":
-        return "Strong stock with valid local signal. Entry may be considered only within the listed conditions."
+        return "Strong stock with valid local signal and acceptable local risk/reward. Entry may be considered only within the listed conditions."
     if decision == "대기":
         return "Strong or near-signal stock, but current entry is not confirmed. Avoid chase-buying and wait for pullback confirmation."
     if decision == "보류":
         return "Signal has conflicting evidence. Hold the decision until conflict conditions are resolved."
     if decision == "제외":
-        return "Local signal is invalid or unavailable. Exclude from entry until required data and conditions recover."
+        return "Local signal is invalid, unavailable, or the local risk/reward gate failed. Exclude from entry until required data and conditions recover."
     return "Intraday decision is unavailable from the current local inputs."
 
 
@@ -237,6 +237,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         _format_bullets(data.intraday_invalid_conditions),
         "",
         f"- Stop reference: {_format_value(data.intraday_stop_reference)}",
+        f"- Take-profit reference: {_format_value(data.intraday_take_profit_reference)}",
         "",
         "## Signal detail",
         "### Supporting factors",
@@ -296,7 +297,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         "- The first line must start with exactly one of: `Decision: 진입`, `Decision: 대기`, `Decision: 보류`, `Decision: 제외`.",
         "- Do not answer with only a vague strength comment such as `strong stock`, `looks good`, or `watch it`.",
         "- State whether the current setup is `chase-buying`, `confirmed pullback`, `conflicted`, or `unavailable`.",
-        "- Then provide short sections: `Reason`, `Entry conditions`, `Invalid / wait conditions`, and `Stop reference`.",
+        "- Then provide short sections: `Reason`, `Entry conditions`, `Invalid / wait conditions`, `Stop reference`, and `Take-profit reference`.",
         "- Do not recommend or imply live trade execution; keep the output as local analysis for the user's decision.",
         "",
         "### Required answer template",
@@ -308,13 +309,14 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         "Invalid / wait conditions:",
         "- <condition or unavailable>",
         "Stop reference: <reference or unavailable>",
+        "Take-profit reference: <reference or unavailable>",
         "",
         "## Ask ChatGPT",
         "1. Start the answer using the required decision-first response format above.",
         "2. Is the signal valid, conflicted, near, invalid, or unavailable?",
         "3. Is the local intraday decision 진입, 대기, 보류, or 제외?",
         "4. Is the current price a chase-buying zone or a confirmed pullback zone?",
-        "5. What entry, invalidation, and stop conditions should be checked before the user decides?",
+        "5. What entry, invalidation, stop, and take-profit conditions should be checked before the user decides?",
         "6. Did the current model answer violate the trading analysis guardrails?",
         "",
     ]
@@ -325,6 +327,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
 __all__ = [
     "EXPECTED_DECISION_BY_SIGNAL_STATE",
     "EXPECTED_DECISION_PREFIXES",
+    "EXPECTED_DECISIONS_BY_SIGNAL_STATE",
     "FUTURES_UNAVAILABLE_NOTICE",
     "LIVE_EXECUTION_TERMS",
     "QuickHandoffInput",
