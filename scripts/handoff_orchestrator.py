@@ -175,7 +175,7 @@ def build_handoff_from_message(
         state=effective_signal_state,
         missing_data=effective_missing_data,
     )
-    intraday_decision = evaluate_intraday_decision(effective_signal_result)
+    intraday_decision = evaluate_intraday_decision(effective_signal_result, snapshot=snapshot)
 
     packet_markdown = build_quick_handoff_packet(
         {
@@ -196,6 +196,7 @@ def build_handoff_from_message(
             "intraday_entry_conditions": list(intraday_decision.entry_conditions),
             "intraday_invalid_conditions": list(intraday_decision.invalid_conditions),
             "intraday_stop_reference": intraday_decision.stop_reference,
+            "intraday_take_profit_reference": intraday_decision.take_profit_reference,
             "recent_discord_excerpt": list(data.recent_messages),
             "current_model_answer": data.current_model_answer,
         }
