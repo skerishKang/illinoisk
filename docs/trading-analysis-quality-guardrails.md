@@ -2,7 +2,7 @@
 
 This guide converts the 2026-06-10 trading review mistakes into repeatable rules for future market analysis.
 
-The goal is not to make the agent more aggressive. The goal is to make every trading answer more data-grounded, less overconfident, and easier for the user to audit before deciding.
+The goal is active, rule-bound intraday decision support. The agent must not act as a no-trade veto. The agent must validate entry, waiting, or exclusion conditions. Exclusion requires explicit invalidation data. If invalidation is not proven, the model should provide entry or wait triggers, not generic cash-holding or avoidance advice.
 
 ## Scope
 
@@ -29,6 +29,43 @@ Every trading analysis should keep these layers separate:
 | Action support | Entry, pass, wait, size, exit, or risk checklist. | Present as decision support, not forced instruction. |
 
 Do not collapse these layers into one confident conclusion. If the data is incomplete, say exactly which field is missing.
+
+## Core rule: no unsupported no-trade veto
+
+The agent must not act as a generic no-trade veto.
+
+The agent must classify the setup as one of:
+
+| Decision | Meaning | Required output |
+|---|---|---|
+| `진입` | Entry conditions are met. | Entry trigger, stop/invalidation, take-profit reference. |
+| `대기` | Direction or setup is relevant, but a concrete trigger is still missing. | Missing trigger, trigger price/condition, recheck timing. |
+| `제외` | A concrete invalidation condition is present. | Exact invalidation reason and the data supporting it. |
+
+The agent must not say `제외`, `현금 보유`, `오늘 쉬기`, `내일 재검토`, or generic `관망` unless a concrete invalidation condition is present.
+
+Forbidden unsupported no-trade language:
+
+```text
+현금 보유하세요.
+오늘은 쉬는 게 낫습니다.
+내일 다시 보세요.
+무리하지 마세요.
+시장 분위기가 안 좋으니 하지 마세요.
+관망하세요.
+패스하세요.
+진입금지입니다.
+```
+
+Allowed replacement:
+
+```text
+판정: 대기
+이유: 아직 [구체 조건]이 미충족입니다.
+진입 트리거: [가격/RSI/수급/거래량 조건]
+무효 조건: [깨지면 제외할 조건]
+익절 기준: [목표 가격/2% 기준]
+```
 
 ## Mistake patterns to prevent
 
@@ -124,9 +161,19 @@ When the user asks whether a stock is buyable now, use this order:
 2. **Source basis**: which field/source and whether the change is previous-close or candle/open based.
 3. **Supply/demand**: brokerage net quantity only if `ka10002`-level net data is available.
 4. **Risk**: invalidation price, stop logic, size boundary, and event risk.
-5. **Decision support**: valid signal / wait / pass, with the reason.
+5. **Decision support**: 진입 / 대기 / 제외(무효 조건 명시 필요), with the reason.
 
 Do not start with a tone-heavy command such as “관망하세요” or “추격 금지입니다.” The answer should first provide the data and then the risk framing.
+
+Allowed structure for decision support:
+
+```text
+판정: 진입 / 대기 / 제외
+이유: [구체 조건]
+진입 트리거: [가격/RSI/수급/거래량 조건]
+무효 조건: [깨지면 제외할 조건]
+익절 기준: [목표]
+```
 
 ## Required postmarket report checks
 
@@ -189,9 +236,15 @@ Preferred:
 추격 금지입니다.
 들어가지 마세요.
 매수하지 마세요.
+현금 보유하세요.
+오늘은 쉬는 게 낫습니다.
+내일 다시 보세요.
+무리하지 마세요.
+패스하세요.
+진입금지입니다.
 ```
 
-에이전트는 매수를 막거나 금지하는 표현을 사용해서는 안 됩니다. 데이터와 리스크 체크포인트를 제공하고 판단은 사용자(박사님)에게 맡겨야 합니다.
+에이전트는 무효 조건 없는 no-trade veto 표현을 사용해서는 안 됩니다. 데이터와 무효 조건을 기반으로 판정(진입/대기/제외)을 내리고, 진입 트리거·손절·익절 기준을 제시하며 최종 결정은 사용자(박사님)에게 맡깁니다.
 
 ## Entry condition expansion (2026-06-11 added)
 

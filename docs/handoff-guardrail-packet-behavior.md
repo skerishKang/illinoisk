@@ -14,7 +14,7 @@ Read the packet from top to bottom, but treat the guardrail sections as gates:
 4. Review `## Current answer guardrail check` before reusing or trusting any existing model answer.
 5. Only then read the original snapshot/request details.
 
-If any top-level guardrail is blocked, the packet should be treated conservatively even if some indicators look favorable.
+If any top-level guardrail is blocked, the packet should be treated with explicit invalidation requirements even if some indicators look favorable. blocked는 무조건 현금보유가 아니라 packet integrity 문제다. missing이면 no-trade veto가 아니라 missing trigger / unavailable data를 표시한다. 제외는 explicit invalidation이 있을 때만 가능하다.
 
 ## Guardrail summary states
 
@@ -23,8 +23,8 @@ The `Guardrail summary` section compresses the main packet checks into one overa
 | Status | Meaning | Operator interpretation |
 | --- | --- | --- |
 | `clear` | No packet guardrail findings are present. | The packet can be reviewed normally, still within fixture/local-only limits. |
-| `attention` | The packet has incomplete context, missing signal data, or unavailable review fields, but no hard contradiction was detected. | Review cautiously. Do not treat the packet as a confident entry signal. |
-| `blocked` | A hard guardrail condition is present, such as signal unavailable, decision/state mismatch, or current answer violation. | Treat the handoff as blocked. The conservative decision should dominate. |
+| `attention` | The packet has incomplete context, missing signal data, or unavailable review fields, but no hard contradiction was detected. | Review with explicit invalidation requirements. Do not treat the packet as a confident entry signal. Do not treat missing data as a generic no-trade veto. |
+| `blocked` | A hard guardrail condition is present, such as signal unavailable, decision/state mismatch, or current answer violation. | Treat the handoff as blocked. The explicit invalidation reason should dominate. If no invalidation exists, the output should be 대기 with missing trigger/data. |
 
 The summary does not replace the detailed sections. It is a quick triage line for whether the packet is safe to keep reading as an actionable local review.
 
@@ -46,7 +46,7 @@ An inconsistent decision/state pair should be treated as a packet integrity prob
 
 ## Snapshot and quote guards
 
-The handoff orchestrator applies conservative local guards before the final decision is rendered.
+The handoff orchestrator applies invalidation-bound local guards before the final decision is rendered.
 
 A snapshot is forced to effective `unavailable` when required quote or timestamp inputs are missing or unusable, including:
 
