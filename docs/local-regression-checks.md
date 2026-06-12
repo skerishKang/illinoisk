@@ -14,20 +14,22 @@ This command is intentionally local-only. It must not require Kiwoom credentials
 
 ## What the runner checks
 
-`tests/run_all.py` currently runs:
+`tests/run_all.py` currently runs the current local regression suite. Keep this list category-based instead of pinning every command, because individual checks can be split or renamed without making the docs stale:
 
-```bash
-python3 -m py_compile scripts/scan_golden_cross.py
-python3 tests/test_save_conversation_import.py
-python3 tests/test_scan_golden_cross_futures_stub.py
-```
+- script syntax checks for local helper modules
+- conversation import regression tests
+- futures unavailable stub tests
+- Discord trigger router tests
+- quick handoff packet tests
+- handoff orchestrator tests
+- stale snapshot age guard tests
+- snapshot schema validator tests
+- fixture snapshot builder tests
+- signal state engine tests
+- intraday decision engine tests
+- intraday handoff review runner tests
 
-These checks cover:
-
-- `scan_golden_cross.py` syntax validity
-- Markdown conversation import and indexing behavior
-- legacy Hermes conversation parsing behavior
-- futures unavailable stub regression behavior
+These checks cover local-only behavior for conversation import, unavailable futures data handling, handoff packet rendering, guardrail summaries, snapshot freshness, fixture construction, signal-state classification, intraday decisions, and the local review CLI.
 
 ## Standard workflow
 
@@ -36,21 +38,26 @@ Before starting a new PR:
 ```bash
 git checkout main
 git pull origin main
+python3 scripts/save_conversation.py sync
 python3 tests/run_all.py
+git diff --check
 git status --short
 ```
 
 Before merging a PR locally or through GitHub:
 
 ```bash
+python3 scripts/save_conversation.py sync
 python3 tests/run_all.py
+git diff --check
 git status --short
 ```
 
 Expected clean result:
 
 ```text
-결과: 3개 통과, 0개 실패
+결과: 20개 통과, 0개 실패
+git diff --check: 통과
 git status --short 출력 없음
 ```
 

@@ -33,7 +33,7 @@ python3 tests/run_all.py
 Expected clean result:
 
 ```text
-결과: 3개 통과, 0개 실패
+결과: 20개 통과, 0개 실패
 ```
 
 See `docs/local-regression-checks.md` for the full local verification workflow.

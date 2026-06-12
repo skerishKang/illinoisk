@@ -45,5 +45,6 @@ Standard local validation:
 ```bash
 python3 scripts/save_conversation.py sync
 python3 tests/run_all.py
+git diff --check
 git status --short
 ```
