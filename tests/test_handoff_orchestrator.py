@@ -230,7 +230,7 @@ def test_orchestrator_preserves_explicit_signal_state_override():
     assert "- Signal state: conflicted_signal" in result.packet_markdown, result.packet_markdown
     assert "- Active strategy: MANUAL_REVIEW" in result.packet_markdown, result.packet_markdown
     assert "## Intraday decision" in result.packet_markdown, result.packet_markdown
-    assert "- Decision: 보류" in result.packet_markdown, result.packet_markdown
+    assert "- Decision: 대기" in result.packet_markdown, result.packet_markdown
     assert "valid local signal" not in result.packet_markdown, result.packet_markdown
     assert "## Signal detail" in result.packet_markdown, result.packet_markdown
     assert "### Missing data" in result.packet_markdown, result.packet_markdown

@@ -10,7 +10,7 @@ It is a docs-only coverage guide. It does not change runtime behavior, fixtures,
 | --- | --- | --- |
 | Signal state engine | `scripts/signal_state_engine.py`, `tests/test_signal_state_engine.py` | Classify fixture snapshots into `valid_signal`, `near_signal`, `conflicted_signal`, `invalid_signal`, and `unavailable`. |
 | Signal detail rendering | `scripts/quick_handoff_packet.py`, `tests/test_quick_handoff_packet.py` | Keep supporting, conflicting, near, and missing-data details visible in handoff output. |
-| Local intraday decision | `scripts/intraday_decision_engine.py`, related intraday decision tests | Convert signal states into local review decisions: `진입`, `대기`, `보류`, and `제외`. |
+| Local intraday decision | `scripts/intraday_decision_engine.py`, related intraday decision tests | Convert signal states into local review decisions: `진입`, `대기`, and `제외`; `conflicted_signal` maps to `대기`. |
 | Handoff packet decision section | `scripts/quick_handoff_packet.py`, `tests/test_quick_handoff_packet.py` | Render the intraday decision and related reasons inside the review packet. |
 | Decision-first response format | `scripts/quick_handoff_packet.py`, `tests/test_quick_handoff_packet.py` | Preserve the required first-line `Decision: ...` response format guidance. |
 | Decision/state consistency | `scripts/quick_handoff_packet.py`, `tests/test_quick_handoff_packet.py` | Detect whether the rendered decision matches the expected decision for the signal state. |

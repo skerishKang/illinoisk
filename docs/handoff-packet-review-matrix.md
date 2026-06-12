@@ -20,7 +20,7 @@ It summarizes how an operator should read common quick handoff packet states. Th
 | --- | --- | --- |
 | `valid_signal` | `진입` | Only meaningful when required packet context is fresh and complete. |
 | `near_signal` | `대기` | Indicates watch/review posture, not a final confirmation. |
-| `conflicted_signal` | `보류` | Indicates mixed inputs. |
+| `conflicted_signal` | `대기` | Mixed inputs are not an automatic exclusion; show conflict resolution conditions. |
 | `invalid_signal` | `제외` | Indicates the local criteria do not support review continuation. |
 | `unavailable` | `대기` or `제외` | Missing/stale data should be shown. Use `제외` only when the missing data is itself a documented hard invalidation. Otherwise default to `대기` with the missing trigger/data. |
 
@@ -50,7 +50,6 @@ Allowed first lines are exactly:
 
 - `Decision: 진입`
 - `Decision: 대기`
-- `Decision: 보류`
 - `Decision: 제외`
 
 ## Missing futures-flow context
