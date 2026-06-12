@@ -42,6 +42,17 @@ Expected behavior:
 - Total date and message counts are shown.
 - Optional keyword search confirms that the regenerated index is usable.
 
+## Repository validation note
+
+This guide documents conversation sync only. Before opening or merging a repository PR, run the standard local validation workflow:
+
+```bash
+python3 scripts/save_conversation.py sync
+python3 tests/run_all.py
+git diff --check
+git status --short
+```
+
 ## Operational rule
 
 After adding or editing a conversation Markdown file:
