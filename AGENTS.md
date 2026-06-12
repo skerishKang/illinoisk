@@ -104,5 +104,5 @@ Natural-language triggers should be preferred over slash-command-only operation.
 
 - Keep strategy changes separate from archive/report changes.
 - Keep production code changes separate from docs-only updates.
-- Run `python3 tests/run_all.py` before reporting completion.
+- Run the standard local validation workflow (`sync / run_all / git diff --check / git status --short`) before reporting completion. See `docs/local-regression-checks.md` for the full workflow.
 - Report changed files, validation output, and whether the working tree is clean.
