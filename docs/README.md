@@ -61,7 +61,10 @@ Do not mix production code, archive content, and strategy changes in one PR unle
 The default regression runner is:
 
 ```bash
+python3 scripts/save_conversation.py sync
 python3 tests/run_all.py
+git diff --check
+git status --short
 ```
 
 It must remain local-only. Do not add Kiwoom credential requirements, network access, or live market API calls to the default verification path.
@@ -71,5 +74,8 @@ For archive-related changes, run:
 ```bash
 python3 scripts/save_conversation.py sync
 python3 tests/run_all.py
+git diff --check
 git status --short
 ```
+
+For the full workflow and expected results, see `docs/local-regression-checks.md`.
