@@ -46,13 +46,16 @@ Do not commit `.db`, `.sqlite`, or `.sqlite3` files.
 
 ## Local verification model
 
-The canonical local regression command is:
+The canonical local validation workflow is:
 
 ```bash
+python3 scripts/save_conversation.py sync
 python3 tests/run_all.py
+git diff --check
+git status --short
 ```
 
-This command is expected to stay local-only. It must not require Kiwoom credentials, network access, or live market API calls.
+The regression step is expected to stay local-only. It must not require Kiwoom credentials, network access, or live market API calls.
 
 See `docs/local-regression-checks.md` for the detailed workflow.
 
