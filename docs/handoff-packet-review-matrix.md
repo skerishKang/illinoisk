@@ -22,9 +22,11 @@ It summarizes how an operator should read common quick handoff packet states. Th
 | `near_signal` | `대기` | Indicates watch/review posture, not a final confirmation. |
 | `conflicted_signal` | `대기` | Mixed inputs are not an automatic exclusion; show wait/confirmation or conflict-resolution conditions. |
 | `invalid_signal` | `제외` | Indicates the local criteria do not support review continuation. |
-| `unavailable` | `대기` or `제외` | Missing/stale data should be shown as wait/confirmation conditions. Use `제외` only when the missing data is itself a documented hard invalidation. |
+| `unavailable` | `대기` | Missing/stale data should be shown as wait/confirmation conditions. `unavailable` itself is not a generic exclusion mapping. |
 
 A mismatch between the signal state and expected decision is a packet integrity issue. The operator should fix the packet input or orchestrator path instead of choosing the more favorable field. For condition rendering, `Decision: 대기` uses `### Wait / confirmation conditions`; `Decision: 제외` uses `### Invalidation / exclusion conditions`.
+
+`제외` requires `invalid_signal`, a separate explicit hard invalidation, or a risk/reward gate failure. Do not treat a bare `unavailable` signal state as enough support for `제외`.
 
 ## Snapshot and quote matrix
 
@@ -63,7 +65,7 @@ Before treating a packet as reviewable, confirm:
 1. `Overall status` is not `blocked`.
 2. `Decision/state consistency` is not `inconsistent`.
 3. `Current answer status` is not `violation`.
-4. If signal state is `unavailable`, the answer must state the missing data. It may use `대기` unless a documented hard invalidation requires `제외`.
+4. If signal state is `unavailable`, the answer must state the missing data and should use `대기` unless a separate hard invalidation is documented.
 5. Missing KOSPI200 futures-flow context has not been replaced by a different data source.
 6. The packet remains fixture/local-only.
 
@@ -74,5 +76,6 @@ This is a docs-only guide. Standard local validation remains:
 ```bash
 python3 scripts/save_conversation.py sync
 python3 tests/run_all.py
+git diff --check
 git status --short
 ```
