@@ -253,7 +253,7 @@ def test_missing_current_price_forces_unavailable_decision_even_with_manual_vali
     )
 
     assert "- Signal state: unavailable" in result.packet_markdown, result.packet_markdown
-    assert "- Decision: 제외" in result.packet_markdown, result.packet_markdown
+    assert "- Decision: 대기" in result.packet_markdown, result.packet_markdown
     assert "current_price unavailable" in result.packet_markdown, result.packet_markdown
     assert "## Signal detail" in result.packet_markdown, result.packet_markdown
     print("  ✓ missing current price overrides manual valid signal")
@@ -282,7 +282,7 @@ def test_missing_snapshot_as_of_forces_unavailable_decision_even_with_valid_indi
     )
 
     assert "- Signal state: unavailable" in result.packet_markdown, result.packet_markdown
-    assert "- Decision: 제외" in result.packet_markdown, result.packet_markdown
+    assert "- Decision: 대기" in result.packet_markdown, result.packet_markdown
     assert "snapshot as_of unavailable" in result.packet_markdown, result.packet_markdown
     assert "### Supporting factors\n- RSI 30m is at or below 30" in result.packet_markdown, result.packet_markdown
     print("  ✓ missing snapshot time prevents actionable decision")

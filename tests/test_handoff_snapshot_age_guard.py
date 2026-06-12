@@ -64,7 +64,7 @@ def test_stale_snapshot_age_forces_unavailable_decision():
     )
 
     assert "- Signal state: unavailable" in result.packet_markdown, result.packet_markdown
-    assert "- Decision: 제외" in result.packet_markdown, result.packet_markdown
+    assert "- Decision: 대기" in result.packet_markdown, result.packet_markdown
     assert "snapshot stale: 301s old" in result.packet_markdown, result.packet_markdown
     print("  ✓ stale snapshot is blocked")
     return True
@@ -85,7 +85,7 @@ def test_unparsable_snapshot_time_forces_unavailable_decision():
     )
 
     assert "- Signal state: unavailable" in result.packet_markdown, result.packet_markdown
-    assert "- Decision: 제외" in result.packet_markdown, result.packet_markdown
+    assert "- Decision: 대기" in result.packet_markdown, result.packet_markdown
     assert "snapshot as_of unparsable" in result.packet_markdown, result.packet_markdown
     print("  ✓ unparsable snapshot time is blocked")
     return True
