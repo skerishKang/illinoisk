@@ -146,7 +146,7 @@ Paste the Discord model's current answer here.
 - User makes the trading decision; model provides checkpoints.
 - The model must not act as a no-trade veto.
 - `제외` requires explicit invalidation data.
-- `conflicted_signal` should be rendered as `대기`, with conflict-resolution conditions and invalidation conditions shown explicitly.
+- `conflicted_signal` should be rendered as `대기`, with conflict-resolution conditions shown as wait/confirmation conditions, not automatic invalidation.
 - Missing data should become `대기` with a missing trigger/data note, not generic 현금보유 or 내일 재검토.
 - Do not tell the user to hold cash, stop trading, wait until tomorrow, or avoid trading unless a documented invalidation condition is present.
 
@@ -176,7 +176,7 @@ Please answer in Korean with:
 2. 신호 상태
 3. 근거 데이터
 4. 진입 트리거
-5. 무효 조건
+5. 무효 조건 / 대기 조건
 6. 익절 기준
 7. 빠진 데이터
 8. 기존 모델 답변의 no-trade veto 여부

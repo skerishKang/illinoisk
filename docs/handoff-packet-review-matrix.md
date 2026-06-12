@@ -20,11 +20,11 @@ It summarizes how an operator should read common quick handoff packet states. Th
 | --- | --- | --- |
 | `valid_signal` | `진입` | Only meaningful when required packet context is fresh and complete. |
 | `near_signal` | `대기` | Indicates watch/review posture, not a final confirmation. |
-| `conflicted_signal` | `대기` | Mixed inputs are not an automatic exclusion; show conflict resolution conditions. |
+| `conflicted_signal` | `대기` | Mixed inputs are not an automatic exclusion; show wait/confirmation or conflict-resolution conditions. |
 | `invalid_signal` | `제외` | Indicates the local criteria do not support review continuation. |
-| `unavailable` | `대기` or `제외` | Missing/stale data should be shown. Use `제외` only when the missing data is itself a documented hard invalidation. Otherwise default to `대기` with the missing trigger/data. |
+| `unavailable` | `대기` or `제외` | Missing/stale data should be shown as wait/confirmation conditions. Use `제외` only when the missing data is itself a documented hard invalidation. |
 
-A mismatch between the signal state and expected decision is a packet integrity issue. The operator should fix the packet input or orchestrator path instead of choosing the more favorable field.
+A mismatch between the signal state and expected decision is a packet integrity issue. The operator should fix the packet input or orchestrator path instead of choosing the more favorable field. For condition rendering, `Decision: 대기` uses `### Wait / confirmation conditions`; `Decision: 제외` uses `### Invalidation / exclusion conditions`.
 
 ## Snapshot and quote matrix
 

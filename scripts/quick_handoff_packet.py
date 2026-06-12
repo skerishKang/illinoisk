@@ -96,6 +96,14 @@ def _format_bullets(lines: Sequence[str]) -> str:
     return "\n".join(f"- {line}" for line in lines)
 
 
+def _condition_section_label(decision: str) -> str:
+    if decision == "대기":
+        return "### Wait / confirmation conditions"
+    if decision == "제외":
+        return "### Invalidation / exclusion conditions"
+    return "### Confirmation conditions"
+
+
 def _expected_decisions_for_signal_state(signal_state: str) -> tuple[str, ...]:
     return EXPECTED_DECISIONS_BY_SIGNAL_STATE.get(signal_state, ())
 
@@ -174,7 +182,7 @@ def _format_intraday_decision_summary(data: QuickHandoffInput) -> str:
     if decision == "대기":
         return "Strong or near-signal stock, but current entry is not confirmed. Avoid chase-buying and wait for pullback confirmation."
     if decision == "제외":
-        return "Local signal is invalid, unavailable, or the local risk/reward gate failed. Exclude from entry until required data and conditions recover."
+        return "Local signal is explicitly invalid or the local risk/reward gate failed. Exclude from entry until required invalidation conditions recover."
     return "Intraday decision is unavailable from the current local inputs."
 
 
@@ -230,7 +238,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         "### Entry conditions",
         _format_bullets(data.intraday_entry_conditions),
         "",
-        "### Invalid / wait conditions",
+        _condition_section_label(data.intraday_decision),
         _format_bullets(data.intraday_invalid_conditions),
         "",
         f"- Stop reference: {_format_value(data.intraday_stop_reference)}",
@@ -294,7 +302,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         "- The first line must start with exactly one of: `Decision: 진입`, `Decision: 대기`, `Decision: 제외`.",
         "- Do not answer with only a vague strength comment such as `strong stock`, `looks good`, or `watch it`.",
         "- State whether the current setup is `chase-buying`, `confirmed pullback`, `conflicted`, or `unavailable`.",
-        "- Then provide short sections: `Reason`, `Entry conditions`, `Invalid / wait conditions`, `Stop reference`, and `Take-profit reference`.",
+        "- Then provide short sections: `Reason`, `Entry conditions`, `Wait / confirmation conditions` or `Invalidation / exclusion conditions`, `Stop reference`, and `Take-profit reference`.",
         "- Do not recommend or imply live trade execution; keep the output as local analysis for the user's decision.",
         "",
         "### Required answer template",
@@ -303,7 +311,7 @@ def build_quick_handoff_packet(data: QuickHandoffInput | Mapping[str, Any]) -> s
         "Reason: <brief reason based only on the packet>",
         "Entry conditions:",
         "- <condition or unavailable>",
-        "Invalid / wait conditions:",
+        "Wait / confirmation or invalidation / exclusion conditions:",
         "- <condition or unavailable>",
         "Stop reference: <reference or unavailable>",
         "Take-profit reference: <reference or unavailable>",
