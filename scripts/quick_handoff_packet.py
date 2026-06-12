@@ -40,7 +40,8 @@ EXPECTED_DECISIONS_BY_SIGNAL_STATE = {
     "near_signal": ("대기",),
     "conflicted_signal": ("대기",),
     "invalid_signal": ("제외",),
-    "unavailable": ("대기", "제외"),
+    # unavailable defaults to wait; exclusion needs a separate explicit invalidation.
+    "unavailable": ("대기",),
 }
 EXPECTED_DECISION_BY_SIGNAL_STATE = {
     state: decisions[0]
