@@ -225,7 +225,7 @@ def test_packet_includes_signal_detail_values():
 
 
 def test_packet_preserves_unavailable_values():
-    print("\n테스트 5: unavailable values are explicit")
+    print("\n테스트 7: unavailable values are explicit")
     packet = build_quick_handoff_packet(fixture_payload())
 
     assert "- Brokerage net quantity: unavailable" in packet, packet
@@ -237,7 +237,7 @@ def test_packet_preserves_unavailable_values():
 
 
 def test_packet_includes_excerpt_model_answer_and_questions():
-    print("\n테스트 6: excerpt, model answer, and questions")
+    print("\n테스트 8: excerpt, model answer, and questions")
     packet = build_quick_handoff_packet(fixture_payload())
 
     assert "- HPSP 지금 어때?" in packet, packet
@@ -254,7 +254,7 @@ def test_packet_includes_excerpt_model_answer_and_questions():
 
 
 def test_empty_optional_fields_render_unavailable():
-    print("\n테스트 7: empty optional fields render unavailable")
+    print("\n테스트 9: empty optional fields render unavailable")
     payload = fixture_payload()
     payload["active_strategy"] = []
     payload["recent_discord_excerpt"] = []
@@ -296,7 +296,7 @@ def test_empty_optional_fields_render_unavailable():
 
 
 def test_packet_requires_decision_first_response_format():
-    print("\n테스트 8: decision-first response format required")
+    print("\n테스트 10: decision-first response format required")
     packet = build_quick_handoff_packet(fixture_payload())
 
     required = [
@@ -323,7 +323,7 @@ def test_packet_requires_decision_first_response_format():
 
 
 def test_packet_marks_decision_state_consistency():
-    print("\n테스트 9: decision/state consistency marked")
+    print("\n테스트 11: decision/state consistency marked")
     packet = build_quick_handoff_packet(fixture_payload())
 
     assert "- Decision/state consistency: consistent: near_signal -> 대기" in packet, packet
@@ -332,7 +332,7 @@ def test_packet_marks_decision_state_consistency():
 
 
 def test_packet_marks_valid_signal_risk_adjusted_decision():
-    print("\n테스트 10: valid_signal risk-adjusted decision marked")
+    print("\n테스트 12: valid_signal risk-adjusted decision marked")
     payload = fixture_payload()
     payload["signal_state"] = "valid_signal"
     payload["intraday_decision"] = "대기"
@@ -347,7 +347,7 @@ def test_packet_marks_valid_signal_risk_adjusted_decision():
 
 
 def test_packet_exposes_decision_state_mismatch():
-    print("\n테스트 11: decision/state mismatch exposed")
+    print("\n테스트 13: decision/state mismatch exposed")
     payload = fixture_payload()
     payload["signal_state"] = "near_signal"
     payload["intraday_decision"] = "진입"
@@ -361,8 +361,26 @@ def test_packet_exposes_decision_state_mismatch():
     return True
 
 
+def test_packet_rejects_unavailable_exclusion_mapping():
+    print("\n테스트 14: unavailable state does not map to exclusion")
+    payload = fixture_payload()
+    payload["signal_state"] = "unavailable"
+    payload["intraday_decision"] = "제외"
+    payload["intraday_invalid_conditions"] = ["missing quote data"]
+
+    packet = build_quick_handoff_packet(payload)
+
+    assert "- Signal state: unavailable" in packet, packet
+    assert "- Decision: 제외" in packet, packet
+    assert "- Decision/state consistency: inconsistent: unavailable expects 대기, got 제외" in packet, packet
+    assert "- Overall status: blocked" in packet, packet
+    assert "- signal state is unavailable" in packet, packet
+    print("  ✓ unavailable state is not a generic exclusion mapping")
+    return True
+
+
 def test_current_answer_guardrail_compliant():
-    print("\n테스트 12: current answer guardrail compliant")
+    print("\n테스트 15: current answer guardrail compliant")
     packet = build_quick_handoff_packet(fixture_payload())
 
     assert "## Current answer guardrail check" in packet, packet
@@ -373,7 +391,7 @@ def test_current_answer_guardrail_compliant():
 
 
 def test_current_answer_guardrail_detects_missing_decision_prefix():
-    print("\n테스트 13: current answer missing Decision prefix detected")
+    print("\n테스트 16: current answer missing Decision prefix detected")
     payload = fixture_payload()
     payload["current_model_answer"] = "신호는 보이지만 시장이 약해서 조심해야 합니다."
 
@@ -386,7 +404,7 @@ def test_current_answer_guardrail_detects_missing_decision_prefix():
 
 
 def test_current_answer_guardrail_detects_live_execution_wording():
-    print("\n테스트 14: current answer live execution wording detected")
+    print("\n테스트 17: current answer live execution wording detected")
     payload = fixture_payload()
     payload["current_model_answer"] = "Decision: 진입\n지금 매수하세요."
 
@@ -399,7 +417,7 @@ def test_current_answer_guardrail_detects_live_execution_wording():
 
 
 def test_guardrail_summary_marks_attention_for_missing_data():
-    print("\n테스트 15: guardrail summary attention")
+    print("\n테스트 18: guardrail summary attention")
     packet = build_quick_handoff_packet(fixture_payload())
 
     assert "## Guardrail summary" in packet, packet
@@ -411,7 +429,7 @@ def test_guardrail_summary_marks_attention_for_missing_data():
 
 
 def test_guardrail_summary_marks_clear_when_no_findings():
-    print("\n테스트 16: guardrail summary clear")
+    print("\n테스트 19: guardrail summary clear")
     payload = fixture_payload()
     payload["signal_missing_data"] = []
 
@@ -424,7 +442,7 @@ def test_guardrail_summary_marks_clear_when_no_findings():
 
 
 def test_guardrail_summary_marks_blocked_for_mismatch_and_violation():
-    print("\n테스트 17: guardrail summary blocked")
+    print("\n테스트 20: guardrail summary blocked")
     payload = fixture_payload()
     payload["signal_state"] = "near_signal"
     payload["intraday_decision"] = "진입"
@@ -448,6 +466,8 @@ def run_all_tests():
         test_packet_contains_required_sections,
         test_packet_includes_route_and_snapshot_values,
         test_packet_includes_intraday_decision_values,
+        test_packet_renders_wait_conditions_for_wait_decision,
+        test_packet_renders_exclusion_conditions_for_excluded_decision,
         test_packet_includes_signal_detail_values,
         test_packet_preserves_unavailable_values,
         test_packet_includes_excerpt_model_answer_and_questions,
@@ -456,6 +476,7 @@ def run_all_tests():
         test_packet_marks_decision_state_consistency,
         test_packet_marks_valid_signal_risk_adjusted_decision,
         test_packet_exposes_decision_state_mismatch,
+        test_packet_rejects_unavailable_exclusion_mapping,
         test_current_answer_guardrail_compliant,
         test_current_answer_guardrail_detects_missing_decision_prefix,
         test_current_answer_guardrail_detects_live_execution_wording,
