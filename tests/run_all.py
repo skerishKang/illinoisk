@@ -38,6 +38,7 @@ CHECKS = [
     [sys.executable, "tests/test_intraday_decision_engine.py"],
     [sys.executable, "tests/test_run_intraday_handoff_review.py"],
     [sys.executable, "tests/test_docs_standard_validation_workflow.py"],
+    [sys.executable, "tests/test_docs_expected_test_count.py"],
 ]
 
 
