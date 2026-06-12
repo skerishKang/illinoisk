@@ -56,7 +56,7 @@ git status --short
 Expected clean result:
 
 ```text
-결과: 20개 통과, 0개 실패
+결과: 21개 통과, 0개 실패
 git diff --check: 통과
 git status --short 출력 없음
 ```
