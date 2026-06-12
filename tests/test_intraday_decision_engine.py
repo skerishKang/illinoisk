@@ -198,8 +198,8 @@ def test_near_signal_maps_to_대기():
     return True
 
 
-def test_conflicted_signal_maps_to_보류():
-    print("\n테스트 8: conflicted_signal maps to 보류")
+def test_conflicted_signal_maps_to_대기():
+    print("\n테스트 8: conflicted_signal maps to 대기")
     snapshot = build_fixture_snapshot(
         indicator_overrides={
             "rsi_1m": 44.0,
@@ -221,9 +221,11 @@ def test_conflicted_signal_maps_to_보류():
 
     result = evaluate_intraday_decision(signal_result, snapshot=snapshot)
 
-    assert result.decision == "보류", result
+    assert result.decision == "대기", result
+    assert result.strength in ("강함", "보통"), result
     assert len(result.reasons) > 0, result
     assert any("충돌" in r for r in result.reasons), result
+    assert any("대기 사유" in r for r in result.reasons), result
     assert len(result.invalid_conditions) > 0, result
     assert result.stop_reference is None, result
     assert result.take_profit_reference is None, result
@@ -349,7 +351,7 @@ def run_all_tests():
         test_wide_stop_valid_signal_maps_to_제외,
         test_unfavorable_reward_risk_valid_signal_maps_to_제외,
         test_near_signal_maps_to_대기,
-        test_conflicted_signal_maps_to_보류,
+        test_conflicted_signal_maps_to_대기,
         test_invalid_signal_maps_to_제외,
         test_unavailable_maps_to_대기,
         test_all_signal_states_mapped,

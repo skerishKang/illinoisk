@@ -19,7 +19,6 @@ from signal_state_engine import SignalStateResult, SIGNAL_STATES
 DECISION_TYPES = (
     "진입",
     "대기",
-    "보류",
     "제외",
 )
 
@@ -27,7 +26,7 @@ DECISION_TYPES = (
 SIGNAL_TO_DECISION = {
     "valid_signal": "진입",
     "near_signal": "대기",
-    "conflicted_signal": "보류",
+    "conflicted_signal": "대기",
     "invalid_signal": "제외",
     "unavailable": "대기",
 }
@@ -135,16 +134,15 @@ def _calculate_strength(signal_result: SignalStateResult, decision: str) -> str:
         return "약함"
 
     if decision == "대기":
+        if signal_result.state == "conflicted_signal":
+            conflicting_count = len(signal_result.conflicting_factors)
+            if conflicting_count >= 2:
+                return "강함"
+            return "보통"
         near_count = len(signal_result.near_factors)
         if near_count >= 2:
             return "보통"
         return "약함"
-
-    if decision == "보류":
-        conflicting_count = len(signal_result.conflicting_factors)
-        if conflicting_count >= 2:
-            return "강함"
-        return "보통"
 
     return "해당없음"
 
@@ -160,18 +158,19 @@ def _build_reasons(signal_result: SignalStateResult, decision: str) -> list[str]
             reasons.append(f"활성 전략: {', '.join(signal_result.active_strategy)}")
 
     elif decision == "대기":
-        if signal_result.near_factors:
-            reasons.extend([f"접근 요인: {f}" for f in signal_result.near_factors])
-        if signal_result.active_strategy:
-            reasons.append(f"관찰 전략: {', '.join(signal_result.active_strategy)}")
-        if signal_result.state == "unavailable":
-            reasons.append("데이터 불충분: 핵심 지표 값 없음")
-
-    elif decision == "보류":
-        if signal_result.conflicting_factors:
-            reasons.extend([f"충돌 요인: {f}" for f in signal_result.conflicting_factors])
-        if signal_result.supporting_factors:
-            reasons.extend([f"지원 요인: {f}" for f in signal_result.supporting_factors])
+        if signal_result.state == "conflicted_signal":
+            if signal_result.conflicting_factors:
+                reasons.extend([f"충돌 요인: {f}" for f in signal_result.conflicting_factors])
+            reasons.append("대기 사유: 충돌 요인 해소 전 재확인 필요")
+            if signal_result.active_strategy:
+                reasons.append(f"관찰 전략: {', '.join(signal_result.active_strategy)}")
+        else:
+            if signal_result.near_factors:
+                reasons.extend([f"접근 요인: {f}" for f in signal_result.near_factors])
+            if signal_result.active_strategy:
+                reasons.append(f"관찰 전략: {', '.join(signal_result.active_strategy)}")
+            if signal_result.state == "unavailable":
+                reasons.append("데이터 불충분: 핵심 지표 값 없음")
 
     elif decision == "제외":
         if signal_result.state == "invalid_signal":
@@ -218,8 +217,8 @@ def _build_stop_reference(
     snapshot: Mapping[str, Any] | None = None,
 ) -> str | None:
     """Build stop loss reference price hint from signal state and snapshot quote."""
-    # Do not provide stop reference for unavailable state — data is missing
-    if signal_result.state == "unavailable":
+    # Do not provide stop reference for unavailable or conflicted states.
+    if signal_result.state == "unavailable" or signal_result.state == "conflicted_signal":
         return None
     if decision != "진입" and decision != "대기":
         return None
@@ -240,8 +239,8 @@ def _build_take_profit_reference(
     signal_result: SignalStateResult | None = None,
 ) -> str | None:
     """Build take-profit reference from caller-provided quote only."""
-    # Do not provide take-profit reference for unavailable state — data is missing
-    if signal_result and signal_result.state == "unavailable":
+    # Do not provide take-profit reference for unavailable or conflicted states.
+    if signal_result and (signal_result.state == "unavailable" or signal_result.state == "conflicted_signal"):
         return None
     if decision != "진입" and decision != "대기":
         return None

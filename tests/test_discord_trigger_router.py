@@ -123,7 +123,7 @@ def test_resolve_active_symbol_from_recent_messages():
     print("\n테스트 7: recent messages resolve active symbol")
     resolution = resolve_active_symbol([
         "HPSP 지금 어때?",
-        "모델 답변은 보류",
+        "모델 답변은 대기",
     ])
     assert resolution.active_symbol == "HPSP", f"unexpected resolution: {resolution}"
     assert resolution.source == "explicit_symbol", f"unexpected source: {resolution}"

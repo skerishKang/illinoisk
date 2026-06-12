@@ -217,7 +217,7 @@ def test_packet_includes_excerpt_model_answer_and_questions():
     assert "Decision: 대기" in packet, packet
     assert "Start the answer using the required decision-first response format" in packet, packet
     assert "Is the signal valid" in packet, packet
-    assert "Is the local intraday decision 진입, 대기, 보류, or 제외?" in packet, packet
+    assert "Is the local intraday decision 진입, 대기, or 제외?" in packet, packet
     assert "chase-buying zone" in packet, packet
     assert "What entry, invalidation, stop, and take-profit conditions" in packet, packet
 
@@ -273,13 +273,13 @@ def test_packet_requires_decision_first_response_format():
 
     required = [
         "## Required response format",
-        "- The first line must start with exactly one of: `Decision: 진입`, `Decision: 대기`, `Decision: 보류`, `Decision: 제외`.",
+        "- The first line must start with exactly one of: `Decision: 진입`, `Decision: 대기`, `Decision: 제외`.",
         "- Do not answer with only a vague strength comment such as `strong stock`, `looks good`, or `watch it`.",
         "- State whether the current setup is `chase-buying`, `confirmed pullback`, `conflicted`, or `unavailable`.",
         "- Then provide short sections: `Reason`, `Entry conditions`, `Invalid / wait conditions`, `Stop reference`, and `Take-profit reference`.",
         "- Do not recommend or imply live trade execution; keep the output as local analysis for the user's decision.",
         "### Required answer template",
-        "Decision: 진입|대기|보류|제외",
+        "Decision: 진입|대기|제외",
         "Setup: chase-buying|confirmed pullback|conflicted|unavailable",
         "Reason: <brief reason based only on the packet>",
         "Entry conditions:\n- <condition or unavailable>",
@@ -321,14 +321,14 @@ def test_packet_marks_valid_signal_risk_adjusted_decision():
 def test_packet_exposes_decision_state_mismatch():
     print("\n테스트 11: decision/state mismatch exposed")
     payload = fixture_payload()
-    payload["signal_state"] = "valid_signal"
-    payload["intraday_decision"] = "보류"
+    payload["signal_state"] = "near_signal"
+    payload["intraday_decision"] = "진입"
 
     packet = build_quick_handoff_packet(payload)
 
-    assert "- Signal state: valid_signal" in packet, packet
-    assert "- Decision: 보류" in packet, packet
-    assert "- Decision/state consistency: inconsistent: valid_signal expects 진입/대기/제외, got 보류" in packet, packet
+    assert "- Signal state: near_signal" in packet, packet
+    assert "- Decision: 진입" in packet, packet
+    assert "- Decision/state consistency: inconsistent: near_signal expects 대기, got 진입" in packet, packet
     print("  ✓ inconsistent decision/state pair exposed")
     return True
 
@@ -398,14 +398,14 @@ def test_guardrail_summary_marks_clear_when_no_findings():
 def test_guardrail_summary_marks_blocked_for_mismatch_and_violation():
     print("\n테스트 17: guardrail summary blocked")
     payload = fixture_payload()
-    payload["signal_state"] = "valid_signal"
-    payload["intraday_decision"] = "보류"
+    payload["signal_state"] = "near_signal"
+    payload["intraday_decision"] = "진입"
     payload["current_model_answer"] = "신호는 좋아 보입니다."
 
     packet = build_quick_handoff_packet(payload)
 
     assert "- Overall status: blocked" in packet, packet
-    assert "- decision/state mismatch: inconsistent: valid_signal expects 진입/대기/제외, got 보류" in packet, packet
+    assert "- decision/state mismatch: inconsistent: near_signal expects 대기, got 진입" in packet, packet
     assert "- current model answer violates required guardrails" in packet, packet
     print("  ✓ blocked summary marked")
     return True

@@ -36,11 +36,11 @@ The packet maps signal states to expected local decisions:
 | --- | --- |
 | `valid_signal` | `진입` |
 | `near_signal` | `대기` |
-| `conflicted_signal` | `보류` |
+| `conflicted_signal` | `대기` |
 | `invalid_signal` | `제외` |
-| `unavailable` | `제외` |
+| `unavailable` | `대기` or `제외` |
 
-`Decision/state consistency` is `consistent` when the rendered intraday decision matches this mapping. It is `inconsistent` when the packet says, for example, `Signal state: valid_signal` but `Decision: 대기`. It is `unavailable` when the packet cannot compare the fields reliably.
+`Decision/state consistency` is `consistent` when the rendered intraday decision matches this mapping. It is `inconsistent` when the packet says, for example, `Signal state: valid_signal` but `Decision: 대기`. It is `unavailable` when the packet cannot compare the fields reliably. `conflicted_signal` should be rendered as `대기`, with the conflicting factors shown as conflict-resolution conditions rather than as a separate no-trade state.
 
 An inconsistent decision/state pair should be treated as a packet integrity problem, not as a trading signal.
 
@@ -56,7 +56,7 @@ A snapshot is forced to effective `unavailable` when required quote or timestamp
 - `snapshot_reference_time` or fallback `time_kst` unparsable when used as the deterministic reference time.
 - Snapshot age greater than `MAX_SNAPSHOT_AGE_SECONDS`.
 
-`MAX_SNAPSHOT_AGE_SECONDS` is `180`. A snapshot older than 180 seconds relative to the caller-provided reference time is stale. Stale snapshots force the effective signal state to `unavailable`, and the intraday decision mapping then produces `Decision: 제외`.
+`MAX_SNAPSHOT_AGE_SECONDS` is `180`. A snapshot older than 180 seconds relative to the caller-provided reference time is stale. Stale snapshots force the effective signal state to `unavailable`; the intraday decision defaults to `대기` with missing trigger/data unless an explicit hard invalidation requires `제외`.
 
 This age guard is deterministic. It does not call the wall clock. The caller must provide `snapshot_reference_time` or `time_kst` for age comparison.
 
@@ -68,7 +68,6 @@ The first non-empty line must exactly match one of the allowed decision lines:
 
 - `Decision: 진입`
 - `Decision: 대기`
-- `Decision: 보류`
 - `Decision: 제외`
 
 The guardrail also detects live execution-style wording such as direct buy/sell/order language. A violation here means the current answer should not be reused as-is. It does not change live systems or send any order; it only marks the packet for review.
