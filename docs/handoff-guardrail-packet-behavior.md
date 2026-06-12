@@ -14,7 +14,7 @@ Read the packet from top to bottom, but treat the guardrail sections as gates:
 4. Review `## Current answer guardrail check` before reusing or trusting any existing model answer.
 5. Only then read the original snapshot/request details.
 
-If any top-level guardrail is blocked, the packet should be treated with explicit invalidation requirements even if some indicators look favorable. blocked는 무조건 현금보유가 아니라 packet integrity 문제다. missing이면 no-trade veto가 아니라 missing trigger / unavailable data를 표시한다. 제외는 explicit invalidation이 있을 때만 가능하다.
+If any top-level guardrail is blocked, the packet should be treated with explicit invalidation requirements even if some indicators look favorable. blocked는 무조건 현금보유가 아니라 packet integrity 문제다. missing이면 no-trade veto가 아니라 missing trigger / unavailable data를 표시한다. 제외는 explicit invalidation이 있을 때만 가능하다. `대기` 상태의 충돌/누락 조건은 확인·해소해야 할 조건이며, 제외 조건처럼 표시하지 않는다.
 
 ## Guardrail summary states
 
@@ -40,7 +40,7 @@ The packet maps signal states to expected local decisions:
 | `invalid_signal` | `제외` |
 | `unavailable` | `대기` or `제외` |
 
-`Decision/state consistency` is `consistent` when the rendered intraday decision matches this mapping. It is `inconsistent` when the packet says, for example, `Signal state: valid_signal` but `Decision: 대기`. It is `unavailable` when the packet cannot compare the fields reliably. `conflicted_signal` should be rendered as `대기`, with the conflicting factors shown as conflict-resolution conditions rather than as a separate no-trade state.
+`Decision/state consistency` is `consistent` when the rendered intraday decision matches this mapping. It is `inconsistent` when the packet says, for example, `Signal state: valid_signal` but `Decision: 대기`. It is `unavailable` when the packet cannot compare the fields reliably. `conflicted_signal` should be rendered as `대기`, with the conflicting factors shown as wait/confirmation or conflict-resolution conditions rather than as a separate no-trade state.
 
 An inconsistent decision/state pair should be treated as a packet integrity problem, not as a trading signal.
 
@@ -56,7 +56,7 @@ A snapshot is forced to effective `unavailable` when required quote or timestamp
 - `snapshot_reference_time` or fallback `time_kst` unparsable when used as the deterministic reference time.
 - Snapshot age greater than `MAX_SNAPSHOT_AGE_SECONDS`.
 
-`MAX_SNAPSHOT_AGE_SECONDS` is `180`. A snapshot older than 180 seconds relative to the caller-provided reference time is stale. Stale snapshots force the effective signal state to `unavailable`; the intraday decision defaults to `대기` with missing trigger/data unless an explicit hard invalidation requires `제외`.
+`MAX_SNAPSHOT_AGE_SECONDS` is `180`. A snapshot older than 180 seconds relative to the caller-provided reference time is stale. Stale snapshots force the effective signal state to `unavailable`; the intraday decision defaults to `대기` with missing trigger/data shown as wait/confirmation conditions unless an explicit hard invalidation requires `제외`.
 
 This age guard is deterministic. It does not call the wall clock. The caller must provide `snapshot_reference_time` or `time_kst` for age comparison.
 

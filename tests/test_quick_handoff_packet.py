@@ -104,7 +104,7 @@ def test_packet_contains_required_sections():
         "## Intraday decision",
         "### Decision reasons",
         "### Entry conditions",
-        "### Invalid / wait conditions",
+        "### Wait / confirmation conditions",
         "## Signal detail",
         "### Supporting factors",
         "### Conflicting factors",
@@ -166,7 +166,7 @@ def test_packet_includes_intraday_decision_values():
         "- Summary: Strong or near-signal stock, but current entry is not confirmed. Avoid chase-buying and wait for pullback confirmation.",
         "### Decision reasons\n- 접근 요인: RSI 5m is near the oversold threshold\n- 관찰 전략: RSI_30",
         "### Entry conditions\n- RSI 30m is at or below 30\n- BB 5m pct is near the lower band\n- 전략: RSI_30",
-        "### Invalid / wait conditions\n- brokerage net quantity unavailable",
+        "### Wait / confirmation conditions\n- brokerage net quantity unavailable",
         "- Stop reference: RSI 30m 30~35 또는 BB 진입 시 확인 후 설정",
         "- Take-profit reference: recent intraday high reference; estimated upside 2.10%",
     ]
@@ -177,8 +177,36 @@ def test_packet_includes_intraday_decision_values():
     return True
 
 
+def test_packet_renders_wait_conditions_for_wait_decision():
+    print("\n테스트 4: wait decision renders confirmation conditions")
+    packet = build_quick_handoff_packet(fixture_payload())
+
+    assert "### Wait / confirmation conditions\n- brokerage net quantity unavailable" in packet, packet
+    assert "### Invalidation / exclusion conditions" not in packet, packet
+    assert "### Invalid / wait conditions" not in packet, packet
+    print("  ✓ wait conditions are not rendered as invalidation")
+    return True
+
+
+def test_packet_renders_exclusion_conditions_for_excluded_decision():
+    print("\n테스트 5: excluded decision renders invalidation conditions")
+    payload = fixture_payload()
+    payload["intraday_decision"] = "제외"
+    payload["intraday_invalid_conditions"] = ["explicit invalidation", "risk/reward gate failed"]
+
+    packet = build_quick_handoff_packet(payload)
+
+    assert "### Invalidation / exclusion conditions\n- explicit invalidation\n- risk/reward gate failed" in packet, packet
+    assert "Local signal is explicitly invalid or the local risk/reward gate failed" in packet, packet
+    stale = "Local signal is " + "invalid, " + "unavailable"
+    assert stale not in packet, packet
+    assert "### Wait / confirmation conditions" not in packet, packet
+    print("  ✓ exclusion conditions keep invalidation label")
+    return True
+
+
 def test_packet_includes_signal_detail_values():
-    print("\n테스트 4: signal detail values")
+    print("\n테스트 6: signal detail values")
     packet = build_quick_handoff_packet(fixture_payload())
 
     required = [
@@ -252,7 +280,7 @@ def test_empty_optional_fields_render_unavailable():
     assert "- Decision/state consistency: unavailable" in packet, packet
     assert "### Decision reasons\n- unavailable" in packet, packet
     assert "### Entry conditions\n- unavailable" in packet, packet
-    assert "### Invalid / wait conditions\n- unavailable" in packet, packet
+    assert "### Confirmation conditions\n- unavailable" in packet, packet
     assert "- Stop reference: unavailable" in packet, packet
     assert "- Take-profit reference: unavailable" in packet, packet
     assert "### Supporting factors\n- unavailable" in packet, packet
@@ -276,14 +304,14 @@ def test_packet_requires_decision_first_response_format():
         "- The first line must start with exactly one of: `Decision: 진입`, `Decision: 대기`, `Decision: 제외`.",
         "- Do not answer with only a vague strength comment such as `strong stock`, `looks good`, or `watch it`.",
         "- State whether the current setup is `chase-buying`, `confirmed pullback`, `conflicted`, or `unavailable`.",
-        "- Then provide short sections: `Reason`, `Entry conditions`, `Invalid / wait conditions`, `Stop reference`, and `Take-profit reference`.",
+        "- Then provide short sections: `Reason`, `Entry conditions`, `Wait / confirmation conditions` or `Invalidation / exclusion conditions`, `Stop reference`, and `Take-profit reference`.",
         "- Do not recommend or imply live trade execution; keep the output as local analysis for the user's decision.",
         "### Required answer template",
         "Decision: 진입|대기|제외",
         "Setup: chase-buying|confirmed pullback|conflicted|unavailable",
         "Reason: <brief reason based only on the packet>",
         "Entry conditions:\n- <condition or unavailable>",
-        "Invalid / wait conditions:\n- <condition or unavailable>",
+        "Wait / confirmation or invalidation / exclusion conditions:\n- <condition or unavailable>",
         "Stop reference: <reference or unavailable>",
         "Take-profit reference: <reference or unavailable>",
     ]
