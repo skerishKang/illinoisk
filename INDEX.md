@@ -39,13 +39,19 @@ It is not an automated trading system and should not execute live market actions
 Run before and after small PRs:
 
 ```bash
+python3 scripts/save_conversation.py sync
 python3 tests/run_all.py
+git diff --check
+git status --short
 ```
 
 Expected result:
 
 ```text
-결과: 3개 통과, 0개 실패
+save_conversation.py sync: 12 dates / 271 messages
+tests/run_all.py: 20개 통과, 0개 실패
+git diff --check: 통과
+git status: tracked files clean after commit
 ```
 
 ## Conversation archive sync

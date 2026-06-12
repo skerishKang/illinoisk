@@ -32,16 +32,22 @@ It is not an automated trading system. Default agent behavior must not execute l
 Run this before and after small PRs:
 
 ```bash
+python3 scripts/save_conversation.py sync
 python3 tests/run_all.py
+git diff --check
+git status --short
 ```
 
 Expected result:
 
 ```text
-결과: 3개 통과, 0개 실패
+save_conversation.py sync: 12 dates / 271 messages
+tests/run_all.py: 20개 통과, 0개 실패
+git diff --check: 통과
+git status: tracked files clean after commit
 ```
 
-The runner is local-only. Do not add checks that require Kiwoom credentials, network access, or live market API calls.
+The runner and default checks must remain local-only. Do not add checks that require Kiwoom credentials, network access, or live market API calls.
 
 ## Conversation archive workflow
 
