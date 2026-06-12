@@ -11,8 +11,8 @@ It summarizes how an operator should read common quick handoff packet states. Th
 | Overall status | Typical packet condition | Review posture |
 | --- | --- | --- |
 | `clear` | Required fields are present, the state mapping is aligned, and the current answer check is compliant. | Normal local review. |
-| `attention` | Some context is missing or unavailable, but no hard contradiction is shown. | Cautious local review. Missing data remains visible. |
-| `blocked` | A hard guardrail finding is present, such as unavailable signal state, state mapping mismatch, or answer-format violation. | Do not reuse the packet conclusion without fixing the underlying packet input. |
+| `attention` | Some context is missing or unavailable, but no hard contradiction is shown. | Invalidation-bound local review. Missing data remains visible. Do not treat missing data as a generic no-trade veto. |
+| `blocked` | A hard guardrail finding is present, such as unavailable signal state, state mapping mismatch, or answer-format violation. | Do not reuse the packet conclusion without fixing the underlying packet input. The explicit invalidation reason should dominate; otherwise the output should remain 대기 with missing trigger/data. |
 
 ## Signal state and decision mapping
 
@@ -22,7 +22,7 @@ It summarizes how an operator should read common quick handoff packet states. Th
 | `near_signal` | `대기` | Indicates watch/review posture, not a final confirmation. |
 | `conflicted_signal` | `보류` | Indicates mixed inputs. |
 | `invalid_signal` | `제외` | Indicates the local criteria do not support review continuation. |
-| `unavailable` | `제외` | Used when required packet context is missing, stale, or unusable. |
+| `unavailable` | `대기` or `제외` | Missing/stale data should be shown. Use `제외` only when the missing data is itself a documented hard invalidation. Otherwise default to `대기` with the missing trigger/data. |
 
 A mismatch between the signal state and expected decision is a packet integrity issue. The operator should fix the packet input or orchestrator path instead of choosing the more favorable field.
 
@@ -31,10 +31,10 @@ A mismatch between the signal state and expected decision is a packet integrity 
 | Packet input condition | Guardrail effect | Review posture |
 | --- | --- | --- |
 | Positive numeric `quote.current_price` and usable `snapshot.as_of` | Quote/timestamp guard may pass. | Continue to other guardrails. |
-| Missing, unavailable, non-numeric, or non-positive `quote.current_price` | Effective signal state becomes `unavailable`. | Conservative review posture. |
-| Missing or unavailable `snapshot.as_of` | Effective signal state becomes `unavailable`. | Conservative review posture. |
-| Unparsable `snapshot.as_of` when a reference time is supplied | Effective signal state becomes `unavailable`. | Conservative review posture. |
-| Snapshot age greater than `MAX_SNAPSHOT_AGE_SECONDS` | Effective signal state becomes `unavailable`. | Conservative review posture. |
+| Missing, unavailable, non-numeric, or non-positive `quote.current_price` | Effective signal state becomes `unavailable`. | Invalidation-bound review posture. Do not treat missing data as a generic no-trade veto. |
+| Missing or unavailable `snapshot.as_of` | Effective signal state becomes `unavailable`. | Invalidation-bound review posture. Do not treat missing data as a generic no-trade veto. |
+| Unparsable `snapshot.as_of` when a reference time is supplied | Effective signal state becomes `unavailable`. | Invalidation-bound review posture. Do not treat missing data as a generic no-trade veto. |
+| Snapshot age greater than `MAX_SNAPSHOT_AGE_SECONDS` | Effective signal state becomes `unavailable`. | Invalidation-bound review posture. Do not treat missing data as a generic no-trade veto. |
 
 `MAX_SNAPSHOT_AGE_SECONDS` is `180`. The age check is deterministic and depends on caller-provided `snapshot_reference_time` or fallback `time_kst`.
 
@@ -64,7 +64,7 @@ Before treating a packet as reviewable, confirm:
 1. `Overall status` is not `blocked`.
 2. `Decision/state consistency` is not `inconsistent`.
 3. `Current answer status` is not `violation`.
-4. `Signal state` is not `unavailable` unless the local decision is conservatively `제외`.
+4. If signal state is `unavailable`, the answer must state the missing data. It may use `대기` unless a documented hard invalidation requires `제외`.
 5. Missing KOSPI200 futures-flow context has not been replaced by a different data source.
 6. The packet remains fixture/local-only.
 

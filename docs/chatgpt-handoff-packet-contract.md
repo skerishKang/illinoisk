@@ -144,6 +144,10 @@ Paste the Discord model's current answer here.
 - Label price-change basis clearly.
 - Keep KOSPI200 futures foreign/institutional flow unavailable unless a confirmed futures-specific source exists.
 - User makes the trading decision; model provides checkpoints.
+- The model must not act as a no-trade veto.
+- `제외` requires explicit invalidation data.
+- Missing data should become `대기` with a missing trigger/data note, not generic 현금보유 or 내일 재검토.
+- Do not tell the user to hold cash, stop trading, wait until tomorrow, or avoid trading unless a documented invalidation condition is present.
 
 ## 9. Known data gaps
 
@@ -159,19 +163,23 @@ Paste the Discord model's current answer here.
 4. What data is missing?
 5. What should the user check before deciding?
 6. How should the Discord model answer be improved?
+7. Did the model use unsupported no-trade veto language?
+8. If the answer says 제외, what exact invalidation condition supports it?
+9. If invalidation is not proven, what entry trigger or 대기 condition should be shown?
 
 ## 11. Expected output format
 
 Please answer in Korean with:
 
-1. 결론
+1. 판정: 진입 / 대기 / 제외
 2. 신호 상태
 3. 근거 데이터
-4. 충돌 요인
-5. 빠진 데이터
-6. 판단 전 체크포인트
-7. 기존 모델 답변의 문제점
-8. 개선된 Discord 답변 예시
+4. 진입 트리거
+5. 무효 조건
+6. 익절 기준
+7. 빠진 데이터
+8. 기존 모델 답변의 no-trade veto 여부
+9. 개선된 Discord 답변 예시
 ```
 
 ## Minimal quick-paste packet
