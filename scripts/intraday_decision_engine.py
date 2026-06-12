@@ -29,7 +29,7 @@ SIGNAL_TO_DECISION = {
     "near_signal": "대기",
     "conflicted_signal": "보류",
     "invalid_signal": "제외",
-    "unavailable": "제외",
+    "unavailable": "대기",
 }
 
 MAX_STOP_DISTANCE_PCT = 3.0
@@ -164,6 +164,8 @@ def _build_reasons(signal_result: SignalStateResult, decision: str) -> list[str]
             reasons.extend([f"접근 요인: {f}" for f in signal_result.near_factors])
         if signal_result.active_strategy:
             reasons.append(f"관찰 전략: {', '.join(signal_result.active_strategy)}")
+        if signal_result.state == "unavailable":
+            reasons.append("데이터 불충분: 핵심 지표 값 없음")
 
     elif decision == "보류":
         if signal_result.conflicting_factors:
@@ -174,8 +176,6 @@ def _build_reasons(signal_result: SignalStateResult, decision: str) -> list[str]
     elif decision == "제외":
         if signal_result.state == "invalid_signal":
             reasons.append("신호 불충분: 지지 요인 없음 또는 신호 조건 미달")
-        elif signal_result.state == "unavailable":
-            reasons.append("데이터 불충분: 핵심 지표 값 없음")
         if signal_result.missing_data:
             reasons.append("누락 데이터: " + ", ".join(signal_result.missing_data[:3]))
 
@@ -218,6 +218,9 @@ def _build_stop_reference(
     snapshot: Mapping[str, Any] | None = None,
 ) -> str | None:
     """Build stop loss reference price hint from signal state and snapshot quote."""
+    # Do not provide stop reference for unavailable state — data is missing
+    if signal_result.state == "unavailable":
+        return None
     if decision != "진입" and decision != "대기":
         return None
 
@@ -234,8 +237,12 @@ def _build_stop_reference(
 def _build_take_profit_reference(
     decision: str,
     snapshot: Mapping[str, Any] | None = None,
+    signal_result: SignalStateResult | None = None,
 ) -> str | None:
     """Build take-profit reference from caller-provided quote only."""
+    # Do not provide take-profit reference for unavailable state — data is missing
+    if signal_result and signal_result.state == "unavailable":
+        return None
     if decision != "진입" and decision != "대기":
         return None
 
@@ -327,7 +334,7 @@ def evaluate_intraday_decision(
     )
     strength = _calculate_strength(signal_result, decision)
     stop_reference = _build_stop_reference(signal_result, decision, snapshot)
-    take_profit_reference = _build_take_profit_reference(decision, snapshot)
+    take_profit_reference = _build_take_profit_reference(decision, snapshot, signal_result)
 
     return IntradayDecisionResult(
         decision=decision,

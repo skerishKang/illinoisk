@@ -265,8 +265,8 @@ def test_invalid_signal_maps_to_제외():
     return True
 
 
-def test_unavailable_maps_to_제외():
-    print("\n테스트 10: unavailable maps to 제외")
+def test_unavailable_maps_to_대기():
+    print("\n테스트 10: unavailable maps to 대기")
     snapshot = build_fixture_snapshot(
         indicator_overrides={
             "rsi_1m": None,
@@ -288,8 +288,8 @@ def test_unavailable_maps_to_제외():
 
     result = evaluate_intraday_decision(signal_result, snapshot=snapshot)
 
-    assert result.decision == "제외", result
-    assert result.strength == "해당없음", result
+    assert result.decision == "대기", result
+    assert result.strength == "약함", result
     assert len(result.reasons) > 0, result
     assert "데이터 불충분" in " ".join(result.reasons), result
     assert len(result.missing_data) > 0, result
@@ -351,7 +351,7 @@ def run_all_tests():
         test_near_signal_maps_to_대기,
         test_conflicted_signal_maps_to_보류,
         test_invalid_signal_maps_to_제외,
-        test_unavailable_maps_to_제외,
+        test_unavailable_maps_to_대기,
         test_all_signal_states_mapped,
         test_dedupe_in_output_lists,
     ]
