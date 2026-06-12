@@ -2,7 +2,7 @@
 
 This guide explains how to read the local quick handoff packet guardrail sections.
 
-The packet is a deterministic fixture/local-only review aid. It does not fetch live market data, does not call Discord, Kiwoom, OpenAI, or any external API, and does not place or recommend live orders. It only summarizes caller-provided snapshot and decision fields so a human or downstream review step can see whether the packet is safe to interpret.
+The packet is a deterministic fixture/local-only review aid. It does not fetch live market data, does not call Discord, Kiwoom, OpenAI, or any external API, and does not trigger external side effects. It only summarizes caller-provided snapshot and decision fields so a human or downstream review step can see whether the packet is safe to interpret.
 
 ## Recommended reading order
 
@@ -38,9 +38,11 @@ The packet maps signal states to expected local decisions:
 | `near_signal` | `대기` |
 | `conflicted_signal` | `대기` |
 | `invalid_signal` | `제외` |
-| `unavailable` | `대기` or `제외` |
+| `unavailable` | `대기` |
 
 `Decision/state consistency` is `consistent` when the rendered intraday decision matches this mapping. It is `inconsistent` when the packet says, for example, `Signal state: valid_signal` but `Decision: 대기`. It is `unavailable` when the packet cannot compare the fields reliably. `conflicted_signal` should be rendered as `대기`, with the conflicting factors shown as wait/confirmation or conflict-resolution conditions rather than as a separate no-trade state.
+
+`unavailable` is a wait-default state. Missing, stale, or unusable data should be shown as missing trigger/data or wait/confirmation context, not as a generic `제외` mapping. Use `제외` only when a separate documented hard invalidation, `invalid_signal`, or risk/reward gate failure supports it.
 
 An inconsistent decision/state pair should be treated as a packet integrity problem, not as a trading signal.
 
@@ -70,7 +72,7 @@ The first non-empty line must exactly match one of the allowed decision lines:
 - `Decision: 대기`
 - `Decision: 제외`
 
-The guardrail also detects live execution-style wording such as direct buy/sell/order language. A violation here means the current answer should not be reused as-is. It does not change live systems or send any order; it only marks the packet for review.
+The guardrail also detects live execution-style wording such as direct buy/sell/order language. A violation here means the current answer should not be reused as-is. It does not change live systems; it only marks the packet for review.
 
 ## Missing futures flow guardrail
 
@@ -86,7 +88,7 @@ This packet behavior does not provide:
 - Kiwoom live market calls.
 - OpenAI/API calls.
 - File-writing runtime behavior.
-- Live trade execution.
+- External execution behavior.
 - Automatic substitution from stock foreign flow or program trading data to unavailable KOSPI200 futures foreign/institutional flow.
 
 ## Validation
@@ -96,5 +98,6 @@ For a docs-only change to this guide, the standard local validation remains:
 ```bash
 python3 scripts/save_conversation.py sync
 python3 tests/run_all.py
+git diff --check
 git status --short
 ```
