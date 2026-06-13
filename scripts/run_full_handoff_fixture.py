@@ -12,6 +12,7 @@ stdout-only 실행 흐름을 제공합니다.
 
     python3 scripts/run_full_handoff_fixture.py --list-scenarios
     python3 scripts/run_full_handoff_fixture.py --scenario active-symbol-signal
+    python3 scripts/run_full_handoff_fixture.py --all-scenarios
 """
 from __future__ import annotations
 
@@ -214,6 +215,25 @@ def build_full_handoff_packet(scenario_name: str, scenario: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def run_all_scenarios() -> str:
+    """모든 built-in scenario를 sorted 순서로 실행하고 full packet들을 header로 묶어 반환한다.
+
+    출력 형식:
+        ===== Scenario: <name> =====
+        <full handoff packet>
+
+        ===== Scenario: <name> =====
+        <full handoff packet>
+        ...
+    """
+    blocks: list[str] = []
+    for name in sorted(SCENARIOS):
+        blocks.append(f"===== Scenario: {name} =====")
+        blocks.append(build_full_handoff_packet(name, SCENARIOS[name]).rstrip("\n"))
+        blocks.append("")
+    return "\n".join(blocks).rstrip("\n") + "\n"
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Build a local full ChatGPT handoff packet from a fixture scenario and print it to stdout."
@@ -231,6 +251,14 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print the deterministic list of available scenario names and exit.",
     )
+    parser.add_argument(
+        "--all-scenarios",
+        action="store_true",
+        help=(
+            "Run every built-in scenario in sorted order and print each full "
+            "handoff packet with a header separator. Exits with 0 on success."
+        ),
+    )
     return parser
 
 
@@ -242,8 +270,12 @@ def main(argv: list[str] | None = None) -> int:
         print(list_scenarios())
         return 0
 
+    if args.all_scenarios:
+        print(run_all_scenarios(), end="")
+        return 0
+
     if not args.scenario:
-        parser.error("either --scenario NAME or --list-scenarios is required")
+        parser.error("either --scenario NAME, --all-scenarios, or --list-scenarios is required")
 
     if args.scenario not in SCENARIOS:
         print(f"unknown scenario: {args.scenario}", file=sys.stderr)

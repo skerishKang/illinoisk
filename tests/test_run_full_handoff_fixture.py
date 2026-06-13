@@ -87,6 +87,15 @@ def _run_list_scenarios() -> subprocess.CompletedProcess:
     )
 
 
+def _run_all_scenarios() -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(RUNNER), "--all-scenarios"],
+        capture_output=True,
+        text=True,
+        cwd=str(BASE),
+    )
+
+
 def _section_positions(out: str) -> list[int]:
     positions = []
     for section in FULL_PACKET_SECTIONS:
@@ -168,9 +177,51 @@ def test_list_scenarios_is_deterministic_and_sorted():
     return True
 
 
+def test_all_scenarios_runs_every_full_packet_in_sorted_order():
+    """--all-scenarios는 sorted 순서로 모든 full packet을 출력해야 한다."""
+    print("\n테스트 3: --all-scenarios — sorted full packet 묶음")
+    result = _run_all_scenarios()
+    assert result.returncode == 0, (
+        f"runner exit code {result.returncode} (expected 0); stderr:\n{result.stderr}"
+    )
+    assert not result.stderr, f"stderr에 예기치 않은 출력: {result.stderr!r}"
+
+    out = result.stdout
+    scenario_names = [row["name"] for row in EXPECTED_SCENARIOS]
+    expected_order = sorted(scenario_names)
+
+    header_positions = []
+    for name in expected_order:
+        header = f"===== Scenario: {name} ====="
+        assert header in out, f"scenario header 누락: {header}\n--- full stdout ---\n{out}"
+        header_positions.append(out.index(header))
+
+    assert header_positions == sorted(header_positions), (
+        f"scenario header가 sorted 순서가 아님: "
+        f"positions={header_positions}, expected={expected_order}"
+    )
+
+    for section in FULL_PACKET_SECTIONS:
+        actual_count = out.count(section)
+        assert actual_count == len(EXPECTED_SCENARIOS), (
+            f"section 출력 개수 불일치: {section!r}, "
+            f"actual={actual_count}, expected={len(EXPECTED_SCENARIOS)}"
+        )
+
+    for row in EXPECTED_SCENARIOS:
+        for pattern in _route_patterns(row):
+            assert pattern in out, (
+                f"[{row['name']}] all-scenarios route-derived field 누락: {pattern}\n"
+                f"--- full stdout ---\n{out}"
+            )
+
+    print(f"  ✓ sorted full packet 출력 확인: {expected_order}")
+    return True
+
+
 def test_unknown_scenario_reports_error_and_exits_nonzero():
     """알 수 없는 scenario는 stderr와 non-zero exit code로 거부되어야 한다."""
-    print("\n테스트 3: --scenario unknown-* — 에러 처리")
+    print("\n테스트 4: --scenario unknown-* — 에러 처리")
     result = _run_scenario("unknown-this-scenario-does-not-exist")
 
     assert result.returncode != 0, (
@@ -197,6 +248,7 @@ def run_all_tests():
     tests = [
         test_full_handoff_scenarios_include_required_sections_and_route_metadata,
         test_list_scenarios_is_deterministic_and_sorted,
+        test_all_scenarios_runs_every_full_packet_in_sorted_order,
         test_unknown_scenario_reports_error_and_exits_nonzero,
     ]
 
