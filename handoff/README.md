@@ -72,6 +72,32 @@ The full packet format is defined in:
 docs/chatgpt-handoff-packet-contract.md
 ```
 
+## Local full fixture write-output workflow
+
+Use the local fixture runner when one full handoff fixture packet should be persisted to a deterministic Markdown path:
+
+```bash
+mkdir -p handoff/2026-06-13
+python3 scripts/run_full_handoff_fixture.py \
+  --scenario active-symbol-signal \
+  --write-output handoff
+```
+
+The current fixture writes this path:
+
+```text
+handoff/2026-06-13/1035-HPSP-full_handoff_active-symbol-signal.md
+```
+
+Important guards:
+
+- `--write-output` writes one scenario only and requires `--scenario NAME`.
+- The date parent directory must already exist; it is not created automatically.
+- Existing packets are not overwritten unless `--overwrite` is supplied.
+- `--write` and `--output-root` are not supported aliases.
+
+See `docs/full-handoff-write-output-usage.md` for the full usage guide, invalid combinations, and validation commands.
+
 ## Chart files and attachments
 
 When chart images are generated locally, save them next to the Markdown packet.
@@ -237,31 +263,3 @@ Poor candidates:
 - duplicate packets for the same event;
 - packets containing secrets;
 - packets with unverified estimates but no labels.
-
-## Relation to other guides
-
-Read these documents before changing this workflow:
-
-- `docs/discord-trading-skill-trigger-architecture.md`
-- `docs/chatgpt-handoff-packet-contract.md`
-- `docs/trading-analysis-quality-guardrails.md`
-- `report/README.md`
-
-## Local validation
-
-For handoff guide or handoff packet changes, run:
-
-```bash
-python3 tests/run_all.py
-git status --short
-```
-
-If conversation archives are edited in the same work, also run:
-
-```bash
-python3 scripts/save_conversation.py sync
-python3 tests/run_all.py
-git status --short
-```
-
-Default validation must remain local-only and must not require Kiwoom credentials, Discord access, OpenAI access, network access, or live market API calls.
