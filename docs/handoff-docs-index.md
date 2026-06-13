@@ -13,6 +13,7 @@ These documents are docs-only references. They describe fixture/local-only hando
 | `docs/handoff-guardrail-test-coverage.md` | Coverage map for local handoff guardrail tests and representative files. |
 | `docs/full-handoff-write-output-usage.md` | Local usage guide for writing one full handoff fixture packet with `--write-output`, including the generated packet commit decision policy. |
 | `docs/local-handoff-write-pipeline-audit.md` | Audit note for the completed local-only handoff write pipeline and remaining boundaries. |
+| `docs/local-handoff-write-dry-run-design.md` | Design note for checking deterministic handoff write paths without creating files. |
 
 ## Suggested order
 
@@ -21,6 +22,7 @@ These documents are docs-only references. They describe fixture/local-only hando
 3. Check `docs/handoff-guardrail-test-coverage.md` when changing or reviewing guardrail tests.
 4. Use `docs/full-handoff-write-output-usage.md` when persisting a full fixture packet with `scripts/run_full_handoff_fixture.py --write-output` and deciding whether that generated packet belongs in Git.
 5. Read `docs/local-handoff-write-pipeline-audit.md` before expanding the local write pipeline.
+6. Read `docs/local-handoff-write-dry-run-design.md` before any future dry-run write-path preview implementation.
 
 ## Local validation
 
