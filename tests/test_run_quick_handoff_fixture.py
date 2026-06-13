@@ -100,6 +100,16 @@ def _run_list_scenarios() -> subprocess.CompletedProcess:
     )
 
 
+def _run_all_scenarios() -> subprocess.CompletedProcess:
+    """--all-scenarios 플래그로 runner를 subprocess 호출한다."""
+    return subprocess.run(
+        [sys.executable, str(RUNNER), "--all-scenarios"],
+        capture_output=True,
+        text=True,
+        cwd=str(BASE),
+    )
+
+
 def _build_route_patterns(row: dict) -> list[str]:
     """table row 하나를 packet에 있어야 할 7개 route pattern 리스트로 변환한다."""
     return [
@@ -208,6 +218,59 @@ def test_list_scenarios_is_deterministic_and_sorted():
     return True
 
 
+def test_all_scenarios_runs_all_in_sorted_order():
+    """--all-scenarios는 sorted 순서로 3개 scenario packet + header를 stdout에 출력한다."""
+    print("\n테스트 4: --all-scenarios — sorted order, 모든 packet 검증")
+    result = _run_all_scenarios()
+
+    # 1) exit code 0
+    assert result.returncode == 0, (
+        f"runner exit code {result.returncode} (expected 0); "
+        f"stderr:\n{result.stderr}"
+    )
+
+    # 6) stderr 비어있음 (또는 에러 없음)
+    assert not result.stderr, (
+        f"stderr에 예기치 않은 에러 출력: {result.stderr!r}"
+    )
+
+    out = result.stdout
+
+    # 2) 3개 header 모두 stdout에 포함
+    scenario_names = [row["name"] for row in EXPECTED_SCENARIOS]
+    for name in scenario_names:
+        header = f"===== Scenario: {name} ====="
+        assert header in out, f"header 누락: {header}\n--- full stdout ---\n{out}"
+
+    # 3) header 순서 = sorted 순서
+    expected_order = sorted(scenario_names)
+    positions = [out.index(f"===== Scenario: {n} =====") for n in expected_order]
+    assert positions == sorted(positions), (
+        f"header 순서가 sorted 아님: positions={positions} "
+        f"(expected non-decreasing), expected_order={expected_order}"
+    )
+
+    # 4) 각 시나리오 packet 핵심 route 속성 stdout 포함
+    #    _build_route_patterns 재사용 → table-driven과 정합성 유지
+    for row in EXPECTED_SCENARIOS:
+        for pattern in _build_route_patterns(row):
+            assert pattern in out, (
+                f"[{row['name']}] route 속성 누락: {pattern}\n"
+                f"--- full stdout ---\n{out}"
+            )
+
+    # 5) 공통 packet section stdout 포함
+    for section in COMMON_PACKET_SECTIONS:
+        assert section in out, f"공통 섹션 누락: {section}\n--- full stdout ---\n{out}"
+
+    print(f"  ✓ exit code 0, stderr 비어있음")
+    print(f"  ✓ 3개 header 모두 stdout에 포함, sorted 순서 확인: {expected_order}")
+    print(f"  ✓ 3개 시나리오 × 6개 route 속성 = 18개 검증 모두 통과")
+    print(f"  ✓ 6개 공통 packet section 모두 stdout에 포함")
+
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
@@ -222,6 +285,7 @@ def run_all_tests():
         test_scenario_catalog_table_driven_assertions,
         test_unknown_scenario_reports_error_and_exits_nonzero,
         test_list_scenarios_is_deterministic_and_sorted,
+        test_all_scenarios_runs_all_in_sorted_order,
     ]
 
     passed = 0

@@ -18,6 +18,7 @@ Local quick handoff fixture scenario catalog runner.
     python3 scripts/run_quick_handoff_fixture.py --scenario active-symbol-signal
     python3 scripts/run_quick_handoff_fixture.py --scenario explicit-symbol-entry
     python3 scripts/run_quick_handoff_fixture.py --scenario active-symbol-stop
+    python3 scripts/run_quick_handoff_fixture.py --all-scenarios
 """
 from __future__ import annotations
 
@@ -80,6 +81,26 @@ def list_scenarios() -> str:
     return "\n".join(lines)
 
 
+def run_all_scenarios() -> str:
+    """모든 built-in scenario를 sorted 순서로 실행하고 packet들을 header로 묶어 반환한다.
+
+    출력 형식:
+        ===== Scenario: <name> =====
+        <packet>
+
+        ===== Scenario: <name> =====
+        <packet>
+        ...
+    """
+    blocks: list[str] = []
+    for name in sorted(SCENARIOS):
+        blocks.append(f"===== Scenario: {name} =====")
+        blocks.append(run_scenario(SCENARIOS[name]))
+        blocks.append("")  # scenario 사이 빈 줄
+    # 마지막 빈 줄은 strip하여 출력 끝의 불필요한 개행 1개로 마무리
+    return "\n".join(blocks).rstrip("\n") + "\n"
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
@@ -99,6 +120,14 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print the deterministic list of available scenario names and exit.",
     )
+    parser.add_argument(
+        "--all-scenarios",
+        action="store_true",
+        help=(
+            "Run every built-in scenario in sorted order and print each packet "
+            "with a header separator. Exits with 0 on success."
+        ),
+    )
     return parser
 
 
@@ -110,9 +139,13 @@ def main(argv: list[str] | None = None) -> int:
         print(list_scenarios())
         return 0
 
+    if args.all_scenarios:
+        print(run_all_scenarios(), end="")
+        return 0
+
     if not args.scenario:
         parser.error(
-            "either --scenario NAME or --list-scenarios is required"
+            "either --scenario NAME, --all-scenarios, or --list-scenarios is required"
         )
 
     if args.scenario not in SCENARIOS:
