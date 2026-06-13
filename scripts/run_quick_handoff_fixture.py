@@ -15,6 +15,7 @@ Local quick handoff fixture scenario catalog runner.
 실행 예시:
 
     python3 scripts/run_quick_handoff_fixture.py --list-scenarios
+    python3 scripts/run_quick_handoff_fixture.py --summary-scenarios
     python3 scripts/run_quick_handoff_fixture.py --scenario active-symbol-signal
     python3 scripts/run_quick_handoff_fixture.py --scenario explicit-symbol-entry
     python3 scripts/run_quick_handoff_fixture.py --scenario active-symbol-stop
@@ -55,13 +56,18 @@ SCENARIOS: dict[str, dict] = {
 }
 
 
-def run_scenario(scenario: dict) -> str:
-    """시나리오 dict를 받아 route → packet으로 변환한 Markdown 문자열을 반환한다."""
-    route = route_message(
+def route_scenario(scenario: dict):
+    """시나리오 dict를 받아 Discord-style message routing 결과를 반환한다."""
+    return route_message(
         scenario["message"],
         active_symbol=scenario.get("active_symbol"),
         recent_messages=scenario.get("recent_messages"),
     )
+
+
+def run_scenario(scenario: dict) -> str:
+    """시나리오 dict를 받아 route → packet으로 변환한 Markdown 문자열을 반환한다."""
+    route = route_scenario(scenario)
     payload = {
         "time_kst": scenario.get("time_kst", "unavailable"),
         "symbol": route.symbol or "unavailable",
@@ -73,11 +79,48 @@ def run_scenario(scenario: dict) -> str:
     return build_quick_handoff_packet(payload)
 
 
+def _format_summary_value(value) -> str:
+    """summary table에서 bool/list/None 값을 사람이 읽기 좋은 deterministic 문자열로 바꾼다."""
+    if value is None:
+        return "unavailable"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (list, tuple)):
+        if not value:
+            return "none"
+        return ",".join(str(item) for item in value)
+    return str(value)
+
+
 def list_scenarios() -> str:
     """Available 시나리오 목록을 deterministic(sorted) 문자열로 반환한다."""
     lines = ["Available scenarios:"]
     for name in sorted(SCENARIOS):
         lines.append(f"  {name}")
+    return "\n".join(lines)
+
+
+def summarize_scenarios() -> str:
+    """모든 built-in scenario의 route 결과를 sorted 순서의 compact table로 반환한다."""
+    lines = [
+        "Scenario summary:",
+        "scenario | symbol | user_question | intent | triggers | reply_mode | used_active_symbol",
+        "--- | --- | --- | --- | --- | --- | ---",
+    ]
+    for name in sorted(SCENARIOS):
+        scenario = SCENARIOS[name]
+        route = route_scenario(scenario)
+        route_dict = route.to_dict()
+        values = [
+            name,
+            route_dict.get("symbol", route.symbol or "unavailable"),
+            scenario["message"],
+            route_dict.get("intent"),
+            route_dict.get("triggers", route_dict.get("trigger")),
+            route_dict.get("reply_mode"),
+            route_dict.get("used_active_symbol"),
+        ]
+        lines.append(" | ".join(_format_summary_value(value) for value in values))
     return "\n".join(lines)
 
 
@@ -121,6 +164,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the deterministic list of available scenario names and exit.",
     )
     parser.add_argument(
+        "--summary-scenarios",
+        action="store_true",
+        help=(
+            "Route every built-in scenario in sorted order and print a compact "
+            "summary table. Exits with 0 on success."
+        ),
+    )
+    parser.add_argument(
         "--all-scenarios",
         action="store_true",
         help=(
@@ -139,13 +190,17 @@ def main(argv: list[str] | None = None) -> int:
         print(list_scenarios())
         return 0
 
+    if args.summary_scenarios:
+        print(summarize_scenarios())
+        return 0
+
     if args.all_scenarios:
         print(run_all_scenarios(), end="")
         return 0
 
     if not args.scenario:
         parser.error(
-            "either --scenario NAME, --all-scenarios, or --list-scenarios is required"
+            "either --scenario NAME, --summary-scenarios, --all-scenarios, or --list-scenarios is required"
         )
 
     if args.scenario not in SCENARIOS:
