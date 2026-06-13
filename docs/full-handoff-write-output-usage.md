@@ -16,6 +16,23 @@ Good uses:
 
 Do not use it as a live trading action. The generated packet is review material only.
 
+## Commit decision policy
+
+A packet written with `--write-output` is local review material first. Do not commit it just because the command succeeded.
+
+Commit a generated packet only after an operator reviews it and confirms all of these points:
+
+- the packet has durable review value, such as a model-error review, missed signal review, postmarket lesson, or future regression fixture candidate;
+- the packet contains no Kiwoom, Discord, OpenAI/API, broker, account, credential, token, or private brokerage identifiers;
+- every uncertain market value is labeled as `verified`, `local_kiwoom`, `conversation-derived`, `estimated`, `unavailable`, or `conflict`;
+- chart screenshots or sidecar data are either sanitized before commit or explicitly kept local-only;
+- the deterministic target path is the intended review path and is not a duplicate of an already committed packet;
+- the PR or commit message explains why this generated artifact belongs in Git.
+
+Keep the packet local-only when it is ordinary smoke output, duplicate review material, noisy conversation context, unsanitized account data, or a temporary artifact created only to test the writer.
+
+The default `--write-output` workflow should never create a Git commit automatically. A human commit decision remains separate from packet generation.
+
 ## Canonical command
 
 The supported CLI shape is:
