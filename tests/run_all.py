@@ -39,6 +39,7 @@ CHECKS = [
     [sys.executable, "tests/test_run_intraday_handoff_review.py"],
     [sys.executable, "tests/test_docs_standard_validation_workflow.py"],
     [sys.executable, "tests/test_docs_expected_test_count.py"],
+    [sys.executable, "tests/test_discord_route_to_handoff_packet.py"],
 ]
 
 
