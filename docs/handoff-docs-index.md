@@ -11,7 +11,7 @@ These documents are docs-only references. They describe fixture/local-only hando
 | `docs/handoff-guardrail-packet-behavior.md` | Full behavior guide for reading quick handoff packet guardrail sections. |
 | `docs/handoff-packet-review-matrix.md` | Compact matrix for summary states, signal/decision mapping, snapshot and quote checks, current answer checks, and operator review posture. |
 | `docs/handoff-guardrail-test-coverage.md` | Coverage map for local handoff guardrail tests and representative files. |
-| `docs/full-handoff-write-output-usage.md` | Local usage guide for writing one full handoff fixture packet with `--write-output`. |
+| `docs/full-handoff-write-output-usage.md` | Local usage guide for writing one full handoff fixture packet with `--write-output`, including the generated packet commit decision policy. |
 | `docs/local-handoff-write-pipeline-audit.md` | Audit note for the completed local-only handoff write pipeline and remaining boundaries. |
 
 ## Suggested order
@@ -19,7 +19,7 @@ These documents are docs-only references. They describe fixture/local-only hando
 1. Read `docs/handoff-guardrail-packet-behavior.md` for the detailed section-by-section explanation.
 2. Use `docs/handoff-packet-review-matrix.md` as the compact checklist during packet review.
 3. Check `docs/handoff-guardrail-test-coverage.md` when changing or reviewing guardrail tests.
-4. Use `docs/full-handoff-write-output-usage.md` when persisting a full fixture packet with `scripts/run_full_handoff_fixture.py --write-output`.
+4. Use `docs/full-handoff-write-output-usage.md` when persisting a full fixture packet with `scripts/run_full_handoff_fixture.py --write-output` and deciding whether that generated packet belongs in Git.
 5. Read `docs/local-handoff-write-pipeline-audit.md` before expanding the local write pipeline.
 
 ## Local validation
