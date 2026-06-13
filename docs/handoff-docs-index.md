@@ -14,6 +14,7 @@ These documents are docs-only references. They describe fixture/local-only hando
 | `docs/full-handoff-write-output-usage.md` | Local usage guide for writing one full handoff fixture packet with `--write-output`, including the generated packet commit decision policy. |
 | `docs/local-handoff-write-pipeline-audit.md` | Audit note for the completed local-only handoff write pipeline and remaining boundaries. |
 | `docs/local-handoff-write-dry-run-design.md` | Design note for checking deterministic handoff write paths without creating files. |
+| `docs/handoff-chart-attachment-boundary.md` | Boundary note for chart images, screenshots, and chart sidecar data referenced by handoff packets. |
 
 ## Suggested order
 
@@ -23,6 +24,7 @@ These documents are docs-only references. They describe fixture/local-only hando
 4. Use `docs/full-handoff-write-output-usage.md` when persisting a full fixture packet with `scripts/run_full_handoff_fixture.py --write-output` and deciding whether that generated packet belongs in Git.
 5. Read `docs/local-handoff-write-pipeline-audit.md` before expanding the local write pipeline.
 6. Read `docs/local-handoff-write-dry-run-design.md` before any future dry-run write-path preview implementation.
+7. Read `docs/handoff-chart-attachment-boundary.md` before referencing chart images, screenshots, or chart sidecar data in handoff review material.
 
 ## Local validation
 
