@@ -11,7 +11,12 @@ import sys
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(BASE, "scripts"))
 
-from quick_handoff_packet import FUTURES_UNAVAILABLE_NOTICE, build_quick_handoff_packet
+from quick_handoff_packet import (
+    EXPECTED_DECISION_BY_SIGNAL_STATE,
+    EXPECTED_DECISIONS_BY_SIGNAL_STATE,
+    FUTURES_UNAVAILABLE_NOTICE,
+    build_quick_handoff_packet,
+)
 
 
 def fixture_payload():
@@ -457,6 +462,59 @@ def test_guardrail_summary_marks_blocked_for_mismatch_and_violation():
     return True
 
 
+def test_handoff_decision_mapping_table():
+    """handoff decision mapping table-driven 회귀 보호.
+
+    PR #108에서 unavailable 기본 결정이 ('대기',)로 정렬된 상태.
+    이 테스트는 그 매핑이 미래에 흔들리지 않도록 table-driven으로 다음을 검증한다:
+      - 모든 state가 deterministic default decision을 가진다.
+      - 어떤 state도 empty allowed decision tuple/list를 가지지 않는다.
+      - allowed의 첫 요소가 default와 일치한다.
+      - 박사님이 명시한 핵심 매핑 4개 (unavailable/invalid_signal/
+        near_signal/conflicted_signal)가 기대값을 유지한다.
+    """
+    print("\n테스트 21: handoff decision mapping table-driven 회귀")
+
+    # 1) 모든 state에 deterministic default가 존재해야 함
+    for state, default in EXPECTED_DECISION_BY_SIGNAL_STATE.items():
+        assert default, (
+            f"state '{state}'의 default decision이 비어있음. "
+            "deterministic default가 필요함."
+        )
+        print(f"  ✓ {state}: default = {default}")
+
+    # 2) 모든 state의 allowed decisions가 비어있지 않고, 첫 요소가 default와 일치
+    for state, allowed in EXPECTED_DECISIONS_BY_SIGNAL_STATE.items():
+        assert allowed, (
+            f"state '{state}'의 allowed decisions가 빈 tuple/list. "
+            "최소 1개 default decision이 필요함."
+        )
+        assert allowed[0] == EXPECTED_DECISION_BY_SIGNAL_STATE[state], (
+            f"state '{state}': allowed 첫 요소 ({allowed[0]})가 "
+            f"default ({EXPECTED_DECISION_BY_SIGNAL_STATE[state]})와 불일치"
+        )
+        for d in allowed:
+            assert d, f"state '{state}'의 allowed 안에 빈 decision: {allowed}"
+
+    # 3) 박사님이 명시한 핵심 매핑 4개 (PR #108 unavailable 기본 결정 포함)
+    assert EXPECTED_DECISION_BY_SIGNAL_STATE["unavailable"] == "대기", (
+        f"unavailable의 default가 '대기'가 아님: "
+        f"{EXPECTED_DECISION_BY_SIGNAL_STATE['unavailable']}"
+    )
+    assert EXPECTED_DECISION_BY_SIGNAL_STATE["invalid_signal"] == "제외", (
+        f"invalid_signal의 default가 '제외'가 아님: "
+        f"{EXPECTED_DECISION_BY_SIGNAL_STATE['invalid_signal']}"
+    )
+    assert EXPECTED_DECISION_BY_SIGNAL_STATE["near_signal"] == "대기"
+    assert EXPECTED_DECISION_BY_SIGNAL_STATE["conflicted_signal"] == "대기"
+    print("  ✓ unavailable -> 대기 (PR #108 핵심)")
+    print("  ✓ invalid_signal -> 제외")
+    print("  ✓ near_signal -> 대기")
+    print("  ✓ conflicted_signal -> 대기")
+
+    return True
+
+
 def run_all_tests():
     print("=" * 60)
     print("quick_handoff_packet.py fixture tests")
@@ -483,6 +541,7 @@ def run_all_tests():
         test_guardrail_summary_marks_attention_for_missing_data,
         test_guardrail_summary_marks_clear_when_no_findings,
         test_guardrail_summary_marks_blocked_for_mismatch_and_violation,
+        test_handoff_decision_mapping_table,
     ]
 
     passed = 0
