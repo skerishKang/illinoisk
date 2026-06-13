@@ -247,7 +247,9 @@ If a screenshot includes private data, sanitize it before committing or paste on
 
 ## Commit policy
 
-Commit handoff packets only when they are useful for later review.
+Generated handoff packets are local review artifacts by default. Writing a packet with `--write-output` does not mean the packet should be committed.
+
+Commit a handoff packet only when it is useful for later review and safe to preserve in Git.
 
 Good candidates:
 
@@ -255,11 +257,25 @@ Good candidates:
 - model answer that may have violated rules;
 - important short-cover track event;
 - chart structure that needs later comparison;
-- postmarket review source packet.
+- postmarket review source packet;
+- sanitized fixture packet that is likely to become a future regression example.
 
 Poor candidates:
 
 - ordinary noisy Discord chatter;
 - duplicate packets for the same event;
 - packets containing secrets;
-- packets with unverified estimates but no labels.
+- packets with unverified estimates but no labels;
+- packets created only to confirm that the write helper works;
+- packets with unsanitized account, balance, token, broker, or private identifier data.
+
+Before committing, check:
+
+1. Is there a durable review reason for keeping this packet?
+2. Does the packet avoid credentials, account numbers, private brokerage identifiers, and unrelated personal data?
+3. Are uncertain values labeled instead of presented as verified facts?
+4. Are screenshots, chart attachments, and sidecar files sanitized or intentionally left local-only?
+5. Is this packet non-duplicative and stored under the intended deterministic `handoff/YYYY-MM-DD/HHMM-symbol-purpose.md` path?
+6. Does the commit or PR explain why the generated artifact belongs in Git?
+
+If any answer is unclear, keep the packet local-only and paste it into ChatGPT web manually instead of committing it.
