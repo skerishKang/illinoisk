@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Local quick handoff fixture runner.
+Local quick handoff fixture scenario catalog runner.
 
 사람이 직접 로컬에서 handoff packet을 눈으로 확인할 수 있는 실행 흐름을 제공합니다.
 
@@ -14,7 +14,10 @@ Local quick handoff fixture runner.
 
 실행 예시:
 
+    python3 scripts/run_quick_handoff_fixture.py --list-scenarios
     python3 scripts/run_quick_handoff_fixture.py --scenario active-symbol-signal
+    python3 scripts/run_quick_handoff_fixture.py --scenario explicit-symbol-entry
+    python3 scripts/run_quick_handoff_fixture.py --scenario active-symbol-stop
 """
 from __future__ import annotations
 
@@ -33,6 +36,18 @@ SCENARIOS: dict[str, dict] = {
     "active-symbol-signal": {
         "recent_messages": ["HPSP 지금 어때?"],
         "message": "신호 왔어?",
+        "active_symbol": None,
+        "time_kst": "2026-06-13 10:35 KST",
+    },
+    "explicit-symbol-entry": {
+        "recent_messages": None,
+        "message": "HPSP 지금 진입해도 돼?",
+        "active_symbol": None,
+        "time_kst": "2026-06-13 10:35 KST",
+    },
+    "active-symbol-stop": {
+        "recent_messages": ["HPSP 지금 어때?"],
+        "message": "손절 기준 알려줘",
         "active_symbol": None,
         "time_kst": "2026-06-13 10:35 KST",
     },
@@ -57,6 +72,14 @@ def run_scenario(scenario: dict) -> str:
     return build_quick_handoff_packet(payload)
 
 
+def list_scenarios() -> str:
+    """Available 시나리오 목록을 deterministic(sorted) 문자열로 반환한다."""
+    lines = ["Available scenarios:"]
+    for name in sorted(SCENARIOS):
+        lines.append(f"  {name}")
+    return "\n".join(lines)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
@@ -65,11 +88,16 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--scenario",
-        required=True,
+        default=None,
         help=(
-            "Fixture scenario name. "
+            "Fixture scenario name to run. "
             f"Available: {', '.join(sorted(SCENARIOS))}"
         ),
+    )
+    parser.add_argument(
+        "--list-scenarios",
+        action="store_true",
+        help="Print the deterministic list of available scenario names and exit.",
     )
     return parser
 
@@ -77,6 +105,15 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.list_scenarios:
+        print(list_scenarios())
+        return 0
+
+    if not args.scenario:
+        parser.error(
+            "either --scenario NAME or --list-scenarios is required"
+        )
 
     if args.scenario not in SCENARIOS:
         print(
