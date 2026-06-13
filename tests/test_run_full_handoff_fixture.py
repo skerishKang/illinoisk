@@ -70,13 +70,17 @@ REQUIRED_SNAPSHOT_FIELDS = [
 ]
 
 
-def _run_scenario(scenario: str) -> subprocess.CompletedProcess:
+def _run_runner(args: list[str]) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, str(RUNNER), "--scenario", scenario],
+        [sys.executable, str(RUNNER), *args],
         capture_output=True,
         text=True,
         cwd=str(BASE),
     )
+
+
+def _run_scenario(scenario: str) -> subprocess.CompletedProcess:
+    return _run_runner(["--scenario", scenario])
 
 
 def _run_list_scenarios() -> subprocess.CompletedProcess:
@@ -102,19 +106,14 @@ def _run_write_output(
     root_dir: Path,
     *extra_args: str,
 ) -> subprocess.CompletedProcess:
-    return subprocess.run(
+    return _run_runner(
         [
-            sys.executable,
-            str(RUNNER),
             "--scenario",
             scenario,
             "--write-output",
             str(root_dir),
             *extra_args,
-        ],
-        capture_output=True,
-        text=True,
-        cwd=str(BASE),
+        ]
     )
 
 
@@ -315,9 +314,106 @@ def test_write_output_refuses_existing_file_unless_overwrite():
     return True
 
 
+def test_write_output_overwrite_false_blocks_second_write():
+    """overwrite 기본값은 기존 packet을 보존하고 두 번째 쓰기를 거부한다."""
+    print("\n테스트 6: --write-output — second write blocked by default")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root_dir = Path(tmp)
+        (root_dir / "2026-06-13").mkdir()
+        expected_path = _expected_packet_path(root_dir, "active-symbol-signal")
+
+        first = _run_write_output("active-symbol-signal", root_dir)
+        assert first.returncode == 0, f"first write 실패: stderr={first.stderr!r}"
+        original = expected_path.read_text(encoding="utf-8")
+
+        second = _run_write_output("active-symbol-signal", root_dir)
+        assert second.returncode == 2, (
+            f"overwrite=False second write가 거부되지 않음: rc={second.returncode}"
+        )
+        assert not second.stdout, f"거부된 write가 stdout을 출력함: {second.stdout!r}"
+        assert "reason=exists" in second.stderr, (
+            f"existing file reason 누락: stderr={second.stderr!r}"
+        )
+        assert str(expected_path) in second.stderr, (
+            f"stderr에 기존 packet path가 없음: stderr={second.stderr!r}"
+        )
+        assert expected_path.read_text(encoding="utf-8") == original, (
+            "overwrite=False 거부 후 packet 내용이 변경됨"
+        )
+
+    print("  ✓ overwrite=False second write guard + unchanged file 확인")
+    return True
+
+
+def test_write_output_overwrite_true_replaces_existing_packet():
+    """--overwrite는 기존 packet 파일을 canonical packet으로 교체한다."""
+    print("\n테스트 7: --write-output --overwrite — replace stale packet")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root_dir = Path(tmp)
+        (root_dir / "2026-06-13").mkdir()
+        expected_path = _expected_packet_path(root_dir, "active-symbol-signal")
+        expected_path.write_text("stale local packet\n", encoding="utf-8")
+
+        result = _run_write_output("active-symbol-signal", root_dir, "--overwrite")
+        assert result.returncode == 0, (
+            f"--overwrite write 실패: rc={result.returncode}, stderr={result.stderr!r}"
+        )
+        assert not result.stderr, f"--overwrite stderr 출력: {result.stderr!r}"
+        assert result.stdout.strip() == f"wrote handoff packet: {expected_path}", (
+            f"write stdout 불일치: {result.stdout!r}"
+        )
+
+        packet = expected_path.read_text(encoding="utf-8")
+        assert packet != "stale local packet\n", "stale packet이 교체되지 않음"
+        assert "# ChatGPT trading review handoff" in packet, "교체된 packet header 누락"
+        assert "- Scenario: active-symbol-signal" in packet, "교체된 packet scenario 누락"
+
+    print("  ✓ explicit --overwrite stale packet replacement 확인")
+    return True
+
+
+def test_write_output_rejects_overwrite_without_write_output():
+    """--overwrite 단독 사용은 write-output 없이 거부되어야 한다."""
+    print("\n테스트 8: --overwrite without --write-output — rejected")
+
+    result = _run_runner(["--scenario", "active-symbol-signal", "--overwrite"])
+    assert result.returncode == 2, (
+        f"--overwrite 단독인데 exit code가 2가 아님: rc={result.returncode}"
+    )
+    assert not result.stdout, f"거부된 CLI가 stdout을 출력함: {result.stdout!r}"
+    assert "--overwrite requires --write-output ROOT_DIR" in result.stderr, (
+        f"stderr에 overwrite guard 메시지가 없음: {result.stderr!r}"
+    )
+
+    print("  ✓ --overwrite 단독 거부 확인")
+    return True
+
+
+def test_write_output_requires_scenario_when_used():
+    """--write-output은 대상 scenario 없이 실행될 수 없다."""
+    print("\n테스트 9: --write-output without --scenario — rejected")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root_dir = Path(tmp)
+        result = _run_runner(["--write-output", str(root_dir)])
+        assert result.returncode == 2, (
+            f"--write-output 단독인데 exit code가 2가 아님: rc={result.returncode}"
+        )
+        assert not result.stdout, f"거부된 CLI가 stdout을 출력함: {result.stdout!r}"
+        assert "--write-output requires --scenario NAME" in result.stderr, (
+            f"stderr에 scenario guard 메시지가 없음: {result.stderr!r}"
+        )
+        assert not any(root_dir.iterdir()), "scenario 없이 write-output이 파일/디렉터리를 생성함"
+
+    print("  ✓ --write-output requires --scenario guard 확인")
+    return True
+
+
 def test_write_output_requires_existing_date_directory():
     """--write-output은 parent directory를 자동 생성하지 않는다."""
-    print("\n테스트 6: --write-output — parent_missing guard")
+    print("\n테스트 10: --write-output — parent_missing guard")
 
     with tempfile.TemporaryDirectory() as tmp:
         root_dir = Path(tmp)
@@ -341,7 +437,7 @@ def test_write_output_requires_existing_date_directory():
 
 def test_unknown_scenario_reports_error_and_exits_nonzero():
     """알 수 없는 scenario는 stderr와 non-zero exit code로 거부되어야 한다."""
-    print("\n테스트 7: --scenario unknown-* — 에러 처리")
+    print("\n테스트 11: --scenario unknown-* — 에러 처리")
     result = _run_scenario("unknown-this-scenario-does-not-exist")
 
     assert result.returncode != 0, (
@@ -371,6 +467,10 @@ def run_all_tests():
         test_all_scenarios_runs_every_full_packet_in_sorted_order,
         test_write_output_writes_single_scenario_to_deterministic_path,
         test_write_output_refuses_existing_file_unless_overwrite,
+        test_write_output_overwrite_false_blocks_second_write,
+        test_write_output_overwrite_true_replaces_existing_packet,
+        test_write_output_rejects_overwrite_without_write_output,
+        test_write_output_requires_scenario_when_used,
         test_write_output_requires_existing_date_directory,
         test_unknown_scenario_reports_error_and_exits_nonzero,
     ]
