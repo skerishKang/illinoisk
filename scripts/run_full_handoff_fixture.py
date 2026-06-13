@@ -3,16 +3,18 @@
 Local full handoff fixture scenario runner.
 
 사람이 직접 로컬에서 full ChatGPT handoff packet을 눈으로 확인할 수 있는
-stdout-only 실행 흐름을 제공합니다.
+stdout-first 실행 흐름을 제공합니다.
 
-이 스크립트는 side-effect free합니다. 서버 실행, 외부 서비스 연결,
+기본 실행은 side-effect free합니다. 서버 실행, 외부 서비스 연결,
 실시간 시세 호출, 모델 호출, 파일 쓰기, 주문 실행 등을 하지 않습니다.
+파일 쓰기는 사람이 ``--write-output``을 명시한 경우에만 local path로 수행합니다.
 
 실행 예시:
 
     python3 scripts/run_full_handoff_fixture.py --list-scenarios
     python3 scripts/run_full_handoff_fixture.py --scenario active-symbol-signal
     python3 scripts/run_full_handoff_fixture.py --all-scenarios
+    python3 scripts/run_full_handoff_fixture.py --scenario active-symbol-signal --write-output handoff
 """
 from __future__ import annotations
 
@@ -20,13 +22,21 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
 from typing import Any
 
 # scripts/ 안의 sibling 모듈 import 지원
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from handoff_file_writer import (
+    HandoffPacketWriteError,
+    build_handoff_packet_path,
+    write_handoff_packet,
+)
 from run_quick_handoff_fixture import SCENARIOS, list_scenarios, route_scenario
 
+
+DATE_KST = "2026-06-13"
 
 APPLICABLE_RULES = [
     "RSI 30 signal should not be overridden by vague market fear.",
@@ -65,6 +75,16 @@ def _format_value(value: Any) -> str:
             return "unavailable"
         return ", ".join(_format_value(item) for item in value)
     return str(value)
+
+
+def _time_for_output_path(time_kst: str) -> str:
+    """scenario time 문자열에서 deterministic file path용 HH:MM 값을 뽑는다."""
+    if not isinstance(time_kst, str):
+        return "unavailable"
+    parts = time_kst.split()
+    if len(parts) >= 2:
+        return parts[1]
+    return time_kst
 
 
 def _fixture_snapshot(symbol: str, time_kst: str) -> dict[str, Any]:
@@ -129,7 +149,7 @@ def build_full_handoff_packet(scenario_name: str, scenario: dict) -> str:
         "",
         "## 1. Review request",
         "",
-        "- Date: 2026-06-13",
+        f"- Date: {DATE_KST}",
         f"- Time KST: {time_kst}",
         f"- Symbol: {symbol}",
         "- Purpose: signal review",
@@ -215,6 +235,32 @@ def build_full_handoff_packet(scenario_name: str, scenario: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def build_full_handoff_packet_output_path(
+    root_dir: str | Path,
+    scenario_name: str,
+    scenario: dict,
+) -> Path:
+    """full handoff fixture packet의 deterministic local output path를 만든다."""
+    route = route_scenario(scenario)
+    symbol = route.symbol or "unavailable"
+    time_kst = _time_for_output_path(scenario.get("time_kst", "unavailable"))
+    purpose = f"full handoff {scenario_name}"
+    return build_handoff_packet_path(root_dir, DATE_KST, time_kst, symbol, purpose)
+
+
+def write_full_handoff_packet(
+    root_dir: str | Path,
+    scenario_name: str,
+    scenario: dict,
+    *,
+    overwrite: bool = False,
+) -> Path:
+    """full handoff fixture packet 하나를 deterministic path에 UTF-8로 쓴다."""
+    packet = build_full_handoff_packet(scenario_name, scenario)
+    path = build_full_handoff_packet_output_path(root_dir, scenario_name, scenario)
+    return write_handoff_packet(path, packet, overwrite=overwrite)
+
+
 def run_all_scenarios() -> str:
     """모든 built-in scenario를 sorted 순서로 실행하고 full packet들을 header로 묶어 반환한다.
 
@@ -259,12 +305,35 @@ def build_parser() -> argparse.ArgumentParser:
             "handoff packet with a header separator. Exits with 0 on success."
         ),
     )
+    parser.add_argument(
+        "--write-output",
+        metavar="ROOT_DIR",
+        default=None,
+        help=(
+            "Write one scenario packet to a deterministic local path under ROOT_DIR. "
+            "Requires --scenario. Parent directories must already exist."
+        ),
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Allow --write-output to replace an existing packet file.",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.overwrite and args.write_output is None:
+        parser.error("--overwrite requires --write-output ROOT_DIR")
+
+    if args.write_output is not None and args.all_scenarios:
+        parser.error("--write-output cannot be used with --all-scenarios")
+
+    if args.write_output is not None and not args.scenario:
+        parser.error("--write-output requires --scenario NAME")
 
     if args.list_scenarios:
         print(list_scenarios())
@@ -284,6 +353,20 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 2
+
+    if args.write_output is not None:
+        try:
+            output_path = write_full_handoff_packet(
+                args.write_output,
+                args.scenario,
+                SCENARIOS[args.scenario],
+                overwrite=args.overwrite,
+            )
+        except HandoffPacketWriteError as e:
+            print(str(e), file=sys.stderr)
+            return 2
+        print(f"wrote handoff packet: {output_path}")
+        return 0
 
     print(build_full_handoff_packet(args.scenario, SCENARIOS[args.scenario]), end="")
     return 0

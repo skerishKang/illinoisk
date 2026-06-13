@@ -10,6 +10,7 @@ Local full handoff fixture runner 회귀 테스트.
 """
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parents[1]
@@ -96,6 +97,27 @@ def _run_all_scenarios() -> subprocess.CompletedProcess:
     )
 
 
+def _run_write_output(
+    scenario: str,
+    root_dir: Path,
+    *extra_args: str,
+) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [
+            sys.executable,
+            str(RUNNER),
+            "--scenario",
+            scenario,
+            "--write-output",
+            str(root_dir),
+            *extra_args,
+        ],
+        capture_output=True,
+        text=True,
+        cwd=str(BASE),
+    )
+
+
 def _section_positions(out: str) -> list[int]:
     positions = []
     for section in FULL_PACKET_SECTIONS:
@@ -114,6 +136,10 @@ def _route_patterns(row: dict) -> list[str]:
         f"- Reply mode: {row['reply_mode']}",
         f"- Used active symbol: {row['used_active_symbol']}",
     ]
+
+
+def _expected_packet_path(root_dir: Path, scenario_name: str) -> Path:
+    return root_dir / "2026-06-13" / f"1035-HPSP-full_handoff_{scenario_name}.md"
 
 
 def test_full_handoff_scenarios_include_required_sections_and_route_metadata():
@@ -219,9 +245,103 @@ def test_all_scenarios_runs_every_full_packet_in_sorted_order():
     return True
 
 
+def test_write_output_writes_single_scenario_to_deterministic_path():
+    """--write-output은 한 scenario packet만 deterministic path에 저장한다."""
+    print("\n테스트 4: --write-output — deterministic single packet write")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root_dir = Path(tmp)
+        (root_dir / "2026-06-13").mkdir()
+        expected_path = _expected_packet_path(root_dir, "active-symbol-signal")
+
+        result = _run_write_output("active-symbol-signal", root_dir)
+        assert result.returncode == 0, (
+            f"runner exit code {result.returncode} (expected 0); stderr:\n{result.stderr}"
+        )
+        assert not result.stderr, f"stderr에 예기치 않은 출력: {result.stderr!r}"
+        assert result.stdout.strip() == f"wrote handoff packet: {expected_path}", (
+            f"write stdout 불일치: {result.stdout!r}"
+        )
+        assert expected_path.is_file(), f"packet 파일이 생성되지 않음: {expected_path}"
+
+        packet = expected_path.read_text(encoding="utf-8")
+        required_patterns = [
+            "# ChatGPT trading review handoff",
+            "- Date: 2026-06-13",
+            "- Time KST: 2026-06-13 10:35 KST",
+            "- Symbol: HPSP",
+            "- User question: 신호 왔어?",
+            "- Scenario: active-symbol-signal",
+        ]
+        for pattern in required_patterns:
+            assert pattern in packet, f"written packet 누락: {pattern}\n--- packet ---\n{packet}"
+
+    print("  ✓ deterministic path + UTF-8 full packet write 확인")
+    return True
+
+
+def test_write_output_refuses_existing_file_unless_overwrite():
+    """--write-output은 기존 파일을 overwrite 없이 덮어쓰지 않는다."""
+    print("\n테스트 5: --write-output — existing file guard + --overwrite")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root_dir = Path(tmp)
+        (root_dir / "2026-06-13").mkdir()
+        expected_path = _expected_packet_path(root_dir, "active-symbol-signal")
+
+        first = _run_write_output("active-symbol-signal", root_dir)
+        assert first.returncode == 0, f"first write 실패: stderr={first.stderr!r}"
+        original = expected_path.read_text(encoding="utf-8")
+
+        second = _run_write_output("active-symbol-signal", root_dir)
+        assert second.returncode == 2, (
+            f"기존 파일인데 exit code가 2가 아님: rc={second.returncode}, stderr={second.stderr!r}"
+        )
+        assert "reason=exists" in second.stderr, (
+            f"existing file reason 누락: stderr={second.stderr!r}"
+        )
+        assert expected_path.read_text(encoding="utf-8") == original, (
+            "overwrite=False 거부 후 파일 내용이 바뀜"
+        )
+
+        third = _run_write_output("active-symbol-signal", root_dir, "--overwrite")
+        assert third.returncode == 0, f"--overwrite write 실패: stderr={third.stderr!r}"
+        assert not third.stderr, f"--overwrite stderr 출력: {third.stderr!r}"
+        replaced = expected_path.read_text(encoding="utf-8")
+        assert replaced == original, "deterministic fixture overwrite 결과가 원본과 달라짐"
+        assert "- Scenario: active-symbol-signal" in replaced, "overwrite 후 packet 내용 누락"
+
+    print("  ✓ existing guard + explicit --overwrite 확인")
+    return True
+
+
+def test_write_output_requires_existing_date_directory():
+    """--write-output은 parent directory를 자동 생성하지 않는다."""
+    print("\n테스트 6: --write-output — parent_missing guard")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root_dir = Path(tmp)
+        expected_path = _expected_packet_path(root_dir, "active-symbol-signal")
+
+        result = _run_write_output("active-symbol-signal", root_dir)
+        assert result.returncode == 2, (
+            f"parent_missing인데 exit code가 2가 아님: rc={result.returncode}, stderr={result.stderr!r}"
+        )
+        assert "reason=parent_missing" in result.stderr, (
+            f"parent_missing reason 누락: stderr={result.stderr!r}"
+        )
+        assert not expected_path.exists(), "parent_missing인데 packet 파일이 생성됨"
+        assert not (root_dir / "2026-06-13").exists(), (
+            "parent_missing인데 date directory가 자동 생성됨"
+        )
+
+    print("  ✓ parent directory 자동 생성 없음 + guard 확인")
+    return True
+
+
 def test_unknown_scenario_reports_error_and_exits_nonzero():
     """알 수 없는 scenario는 stderr와 non-zero exit code로 거부되어야 한다."""
-    print("\n테스트 4: --scenario unknown-* — 에러 처리")
+    print("\n테스트 7: --scenario unknown-* — 에러 처리")
     result = _run_scenario("unknown-this-scenario-does-not-exist")
 
     assert result.returncode != 0, (
@@ -249,6 +369,9 @@ def run_all_tests():
         test_full_handoff_scenarios_include_required_sections_and_route_metadata,
         test_list_scenarios_is_deterministic_and_sorted,
         test_all_scenarios_runs_every_full_packet_in_sorted_order,
+        test_write_output_writes_single_scenario_to_deterministic_path,
+        test_write_output_refuses_existing_file_unless_overwrite,
+        test_write_output_requires_existing_date_directory,
         test_unknown_scenario_reports_error_and_exits_nonzero,
     ]
 
