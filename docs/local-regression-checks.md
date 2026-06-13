@@ -28,6 +28,8 @@ This command is intentionally local-only. It must not require Kiwoom credentials
 - signal state engine tests
 - intraday decision engine tests
 - intraday handoff review runner tests
+- quick handoff fixture runner tests
+- full handoff fixture runner tests
 
 These checks cover local-only behavior for conversation import, unavailable futures data handling, handoff packet rendering, guardrail summaries, snapshot freshness, fixture construction, signal-state classification, intraday decisions, and the local review CLI.
 
@@ -56,7 +58,7 @@ git status --short
 Expected clean result:
 
 ```text
-결과: 24개 통과, 0개 실패
+결과: 25개 통과, 0개 실패
 git diff --check: 통과
 git status --short 출력 없음
 ```
