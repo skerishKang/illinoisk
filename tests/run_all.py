@@ -41,6 +41,7 @@ CHECKS = [
     [sys.executable, "tests/test_docs_expected_test_count.py"],
     [sys.executable, "tests/test_discord_route_to_handoff_packet.py"],
     [sys.executable, "tests/test_run_quick_handoff_fixture.py"],
+    [sys.executable, "tests/test_run_full_handoff_fixture.py"],
 ]
 
 
