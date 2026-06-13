@@ -175,10 +175,49 @@ def ensure_can_write_packet(
     return (True, "ok")
 
 
+class HandoffPacketWriteError(RuntimeError):
+    """Raised when a handoff packet cannot be written safely.
+
+    ``args[0]``에는 ``ensure_can_write_packet``의 reason이 들어 있으므로
+    caller는 예외 메시지만 보고도 ``exists``/``parent_missing`` 등을
+    deterministic하게 구분할 수 있다.
+    """
+
+
+def write_handoff_packet(
+    path: Union[str, Path],
+    content: str,
+    *,
+    overwrite: bool = False,
+) -> Path:
+    """UTF-8로 handoff packet ``content``를 ``path``에 쓴다.
+
+    - 내부적으로 ``ensure_can_write_packet``을 재사용한다.
+    - ``overwrite=False`` (기본값)면 기존 파일이 있으면 거부된다.
+    - ``overwrite=True``여도 부모 디렉토리가 없으면 거부된다.
+    - 거부될 때는 ``HandoffPacketWriteError``가 raise되며 reason이
+      메시지에 포함된다 (``reason=exists: ...`` / ``reason=parent_missing: ...``).
+    - parent directory는 이 slice에서 자동 생성하지 않는다. 호출자가
+      ``path.parent.mkdir(parents=True, exist_ok=True)``로 미리 만들어야 한다.
+
+    반환값: 실제로 write된 ``Path`` (caller가 추가 검증/이동/메타 기록에 사용).
+    """
+    target = Path(path)
+    allowed, reason = ensure_can_write_packet(target, overwrite=overwrite)
+    if not allowed:
+        raise HandoffPacketWriteError(
+            f"cannot write handoff packet: reason={reason}: {target}"
+        )
+    target.write_text(content, encoding="utf-8")
+    return target
+
+
 __all__ = [
     "build_handoff_packet_path",
     "ensure_can_write_packet",
     "sanitize_filename_component",
+    "write_handoff_packet",
+    "HandoffPacketWriteError",
     "DEFAULT_FILENAME_FALLBACK",
     "DEFAULT_SANITIZE_MAX_LENGTH",
 ]
