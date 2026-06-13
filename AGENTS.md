@@ -42,7 +42,7 @@ Expected result:
 
 ```text
 save_conversation.py sync: 12 dates / 271 messages
-tests/run_all.py: 23개 통과, 0개 실패
+tests/run_all.py: 24개 통과, 0개 실패
 git diff --check: 통과
 git status: tracked files clean after commit
 ```
