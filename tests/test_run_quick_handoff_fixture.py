@@ -2,24 +2,22 @@
 """
 Local quick handoff fixture runner 회귀 테스트.
 
-`scripts/run_quick_handoff_fixture.py`가 박사님이 명시한 11개 spec을
-stdout에 정확히 출력하는지 확인한다.
+`scripts/run_quick_handoff_fixture.py`의 scenario catalog(PR #127)가
+future edit에도 의미를 잃지 않도록 table-driven으로 잠근다.
 
-확인 시나리오:
-  --scenario active-symbol-signal
+각 scenario에 대해 검증:
+  1. scenario name
+  2. expected symbol
+  3. expected user question
+  4. expected intent
+  5. expected trigger
+  6. expected reply mode
+  7. expected used_active_symbol (bool 직렬화 형태: "true" / "false")
+  8. 공통 packet section 6개
 
-확인 패턴 (모두 stdout에 포함되어야 함):
-  - "# Quick ChatGPT trading review"
-  - "## Guardrail summary"
-  - "## Review request"
-  - "- Symbol: HPSP"
-  - "## Trigger route"
-  - "- Intent: signal_review"
-  - "- Triggers: 신호"
-  - "- Reply mode: short_review"
-  - "- Used active symbol: true"
-  - "## Intraday decision"
-  - "## Required response format"
+추가 검증:
+  - unknown scenario는 명확한 stderr + non-zero exit code로 거부
+  - --list-scenarios 출력은 deterministic(sorted) 3개 시나리오 이름
 
 실행:
   python3 tests/test_run_quick_handoff_fixture.py
@@ -31,23 +29,59 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parents[1]
 RUNNER = BASE / "scripts" / "run_quick_handoff_fixture.py"
 
-REQUIRED_PATTERNS = [
+# ---------------------------------------------------------------------------
+# Scenario catalog table (Issue #128)
+# ---------------------------------------------------------------------------
+# 각 row는 scripts/run_quick_handoff_fixture.py의 한 scenario에 대응하며,
+# packet이 stdout에 포함해야 할 7개 route 속성과 그 직렬화 값을 정의한다.
+#
+# used_active_symbol은 _format_value()가 bool을 직렬화한 결과("true"/"false")로
+# 기록한다.
+EXPECTED_SCENARIOS = [
+    {
+        "name": "active-symbol-signal",
+        "symbol": "HPSP",
+        "user_question": "신호 왔어?",
+        "intent": "signal_review",
+        "trigger": "신호",
+        "reply_mode": "short_review",
+        "used_active_symbol": "true",  # recent_messages에서 HPSP 해석
+    },
+    {
+        "name": "explicit-symbol-entry",
+        "symbol": "HPSP",
+        "user_question": "HPSP 지금 진입해도 돼?",
+        "intent": "entry_check",
+        "trigger": "진입",
+        "reply_mode": "short_review",
+        "used_active_symbol": "false",  # 메시지에서 명시적으로 HPSP 사용
+    },
+    {
+        "name": "active-symbol-stop",
+        "symbol": "HPSP",
+        "user_question": "손절 기준 알려줘",
+        "intent": "stop_check",
+        "trigger": "손절",
+        "reply_mode": "short_review",
+        "used_active_symbol": "true",  # recent_messages에서 HPSP 해석
+    },
+]
+
+COMMON_PACKET_SECTIONS = [
     "# Quick ChatGPT trading review",
     "## Guardrail summary",
     "## Review request",
-    "- Symbol: HPSP",
     "## Trigger route",
-    "- Intent: signal_review",
-    "- Triggers: 신호",
-    "- Reply mode: short_review",
-    "- Used active symbol: true",
     "## Intraday decision",
     "## Required response format",
 ]
 
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 def _run_runner(scenario: str) -> subprocess.CompletedProcess:
-    """CLI 러너를 subprocess로 실행하고 결과를 반환한다."""
+    """--scenario NAME으로 runner를 subprocess 호출한다."""
     return subprocess.run(
         [sys.executable, str(RUNNER), "--scenario", scenario],
         capture_output=True,
@@ -56,29 +90,72 @@ def _run_runner(scenario: str) -> subprocess.CompletedProcess:
     )
 
 
-def test_active_symbol_scenario_emits_required_sections():
-    """--scenario active-symbol-signal이 박사님 11개 spec을 모두 stdout에 출력하는지 확인."""
-    print("\n테스트 1: --scenario active-symbol-signal — 11개 spec 검증")
-    result = _run_runner("active-symbol-signal")
-
-    assert result.returncode == 0, (
-        f"runner exit code {result.returncode} (expected 0); "
-        f"stderr:\n{result.stderr}"
+def _run_list_scenarios() -> subprocess.CompletedProcess:
+    """--list-scenarios 플래그로 runner를 subprocess 호출한다."""
+    return subprocess.run(
+        [sys.executable, str(RUNNER), "--list-scenarios"],
+        capture_output=True,
+        text=True,
+        cwd=str(BASE),
     )
-    print(f"  ✓ exit code 0")
 
-    out = result.stdout
-    missing = [p for p in REQUIRED_PATTERNS if p not in out]
-    assert not missing, (
-        f"stdout에 누락된 spec ({len(missing)}개):\n"
-        + "\n".join(f"  - {p}" for p in missing)
-        + f"\n--- full stdout ---\n{out}"
-    )
-    print(f"  ✓ 11개 spec 모두 stdout에 포함: {len(REQUIRED_PATTERNS)}개 통과")
+
+def _build_route_patterns(row: dict) -> list[str]:
+    """table row 하나를 packet에 있어야 할 7개 route pattern 리스트로 변환한다."""
+    return [
+        f"- Symbol: {row['symbol']}",
+        f"- User question: {row['user_question']}",
+        f"- Intent: {row['intent']}",
+        f"- Triggers: {row['trigger']}",
+        f"- Reply mode: {row['reply_mode']}",
+        f"- Used active symbol: {row['used_active_symbol']}",
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Table-driven regression (Issue #128)
+# ---------------------------------------------------------------------------
+def test_scenario_catalog_table_driven_assertions():
+    """3개 scenario의 7개 route 속성과 6개 공통 packet 섹션을 table-driven으로 검증."""
+    print(f"\n테스트 1: scenario catalog table-driven 회귀 ({len(EXPECTED_SCENARIOS)}개 시나리오)")
+
+    for row in EXPECTED_SCENARIOS:
+        name = row["name"]
+        result = _run_runner(name)
+
+        assert result.returncode == 0, (
+            f"[{name}] runner exit code {result.returncode} (expected 0); "
+            f"stderr:\n{result.stderr}"
+        )
+        out = result.stdout
+
+        # 7개 route 속성
+        route_patterns = _build_route_patterns(row)
+        missing_routes = [p for p in route_patterns if p not in out]
+        assert not missing_routes, (
+            f"[{name}] stdout에 누락된 route 속성 ({len(missing_routes)}개):\n"
+            + "\n".join(f"  - {p}" for p in missing_routes)
+            + f"\n--- full stdout ---\n{out}"
+        )
+
+        # 6개 공통 packet 섹션
+        missing_sections = [s for s in COMMON_PACKET_SECTIONS if s not in out]
+        assert not missing_sections, (
+            f"[{name}] stdout에 누락된 공통 섹션 ({len(missing_sections)}개):\n"
+            + "\n".join(f"  - {s}" for s in missing_sections)
+            + f"\n--- full stdout ---\n{out}"
+        )
+
+        print(
+            f"  ✓ {name}: 7개 route 속성 + {len(COMMON_PACKET_SECTIONS)}개 공통 섹션 모두 통과"
+        )
 
     return True
 
 
+# ---------------------------------------------------------------------------
+# 유지되는 테스트
+# ---------------------------------------------------------------------------
 def test_unknown_scenario_reports_error_and_exits_nonzero():
     """알 수 없는 시나리오 이름은 명확한 에러와 non-zero exit code로 거부되어야 한다."""
     print("\n테스트 2: --scenario unknown-* — 에러 처리")
@@ -100,67 +177,9 @@ def test_unknown_scenario_reports_error_and_exits_nonzero():
     return True
 
 
-def test_explicit_symbol_entry_scenario_emits_packet():
-    """--scenario explicit-symbol-entry가 HPSP/entry_check/used_active_symbol=false를 stdout에 출력하는지 확인."""
-    print("\n테스트 3: --scenario explicit-symbol-entry — entry_check + 명시적 종목")
-    result = _run_runner("explicit-symbol-entry")
-
-    assert result.returncode == 0, (
-        f"runner exit code {result.returncode} (expected 0); "
-        f"stderr:\n{result.stderr}"
-    )
-    out = result.stdout
-
-    for required in (
-        "- Symbol: HPSP",
-        "- Intent: entry_check",
-        "- Used active symbol: false",  # 메시지에서 명시적으로 HPSP를 잡았으므로 active 아님
-    ):
-        assert required in out, (
-            f"stdout에 누락: {required}\n--- full stdout ---\n{out}"
-        )
-    print("  ✓ explicit-symbol-entry: Symbol=HPSP, Intent=entry_check, Used active symbol=false")
-
-    return True
-
-
-def test_active_symbol_stop_scenario_emits_packet():
-    """--scenario active-symbol-stop이 HPSP/stop_check/used_active_symbol=true를 stdout에 출력하는지 확인."""
-    print("\n테스트 4: --scenario active-symbol-stop — stop_check + recent 해석 active")
-    result = _run_runner("active-symbol-stop")
-
-    assert result.returncode == 0, (
-        f"runner exit code {result.returncode} (expected 0); "
-        f"stderr:\n{result.stderr}"
-    )
-    out = result.stdout
-
-    for required in (
-        "- Symbol: HPSP",
-        "- Intent: stop_check",
-        "- Used active symbol: true",  # recent_messages에서 HPSP 해석
-    ):
-        assert required in out, (
-            f"stdout에 누락: {required}\n--- full stdout ---\n{out}"
-        )
-    print("  ✓ active-symbol-stop: Symbol=HPSP, Intent=stop_check, Used active symbol=true")
-
-    return True
-
-
-def _run_list_scenarios() -> subprocess.CompletedProcess:
-    """--list-scenarios 플래그로 runner를 subprocess 호출한다."""
-    return subprocess.run(
-        [sys.executable, str(RUNNER), "--list-scenarios"],
-        capture_output=True,
-        text=True,
-        cwd=str(BASE),
-    )
-
-
 def test_list_scenarios_is_deterministic_and_sorted():
     """--list-scenarios는 3개 시나리오 이름을 알파벳 순으로 stdout에 출력한다."""
-    print("\n테스트 5: --list-scenarios — deterministic sorted 목록")
+    print("\n테스트 3: --list-scenarios — deterministic sorted 목록")
     result = _run_list_scenarios()
 
     assert result.returncode == 0, (
@@ -169,33 +188,29 @@ def test_list_scenarios_is_deterministic_and_sorted():
     )
     out = result.stdout
 
-    for required_scenario in (
-        "active-symbol-signal",
-        "active-symbol-stop",
-        "explicit-symbol-entry",
-    ):
-        assert required_scenario in out, (
-            f"stdout에 시나리오 누락: {required_scenario}\n--- full stdout ---\n{out}"
-        )
-    print("  ✓ 3개 시나리오 이름 모두 stdout에 포함")
+    # table에서 시나리오 이름 추출
+    scenario_names = [row["name"] for row in EXPECTED_SCENARIOS]
+    missing = [n for n in scenario_names if n not in out]
+    assert not missing, (
+        f"stdout에 시나리오 누락: {missing}\n--- full stdout ---\n{out}"
+    )
+    print(f"  ✓ {len(scenario_names)}개 시나리오 이름 모두 stdout에 포함")
 
     # deterministic(sorted) 검증: 알파벳 순 위치 확인
-    expected_order = sorted([
-        "active-symbol-signal",
-        "active-symbol-stop",
-        "explicit-symbol-entry",
-    ])
-    # expected_order == ["active-symbol-signal", "active-symbol-stop", "explicit-symbol-entry"]
+    expected_order = sorted(scenario_names)
     positions = [out.index(name) for name in expected_order]
     assert positions == sorted(positions), (
         f"시나리오 이름이 알파벳 순이 아님: positions={positions} "
-        f"(expected non-decreasing)"
+        f"(expected non-decreasing), expected_order={expected_order}"
     )
     print(f"  ✓ 알파벳 순 정렬 확인: {expected_order}")
 
     return True
 
 
+# ---------------------------------------------------------------------------
+# Runner
+# ---------------------------------------------------------------------------
 def run_all_tests():
     """모든 테스트 실행"""
     print("=" * 60)
@@ -204,10 +219,8 @@ def run_all_tests():
     print(f"runner path: {RUNNER}")
 
     tests = [
-        test_active_symbol_scenario_emits_required_sections,
+        test_scenario_catalog_table_driven_assertions,
         test_unknown_scenario_reports_error_and_exits_nonzero,
-        test_explicit_symbol_entry_scenario_emits_packet,
-        test_active_symbol_stop_scenario_emits_packet,
         test_list_scenarios_is_deterministic_and_sorted,
     ]
 
