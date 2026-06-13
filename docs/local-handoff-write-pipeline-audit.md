@@ -1,6 +1,6 @@
 # Local handoff write pipeline audit
 
-This audit note records the current local-only handoff write pipeline after PR #144, PR #146, PR #149, PR #151, PR #153, PR #159, and PR #161.
+This audit note records the current local-only handoff write pipeline after PR #144, PR #146, PR #149, PR #151, PR #153, PR #159, PR #161, and PR #164.
 
 The pipeline is intentionally fixture-first and review-only. It prepares Markdown packets for human or ChatGPT web review, but it does not perform live trading actions or call external services.
 
@@ -15,7 +15,7 @@ The pipeline is intentionally fixture-first and review-only. It prepares Markdow
 | Batch runner behavior | `--all-scenarios` remains stdout-only and does not write files. |
 | Parent directory behavior | Parent date directory must already exist; the runner does not create it automatically. |
 | Existing file behavior | Existing packet is refused unless `--overwrite` is supplied. |
-| Operator documentation | Documented in `docs/full-handoff-write-output-usage.md`, `handoff/README.md`, and `docs/local-handoff-write-dry-run-design.md`. |
+| Operator documentation | Documented in `docs/full-handoff-write-output-usage.md`, `handoff/README.md`, `docs/local-handoff-write-dry-run-design.md`, and `docs/handoff-chart-attachment-boundary.md`. |
 | Focused regression coverage | `tests/test_run_full_handoff_fixture.py` covers full packet output and write-output guards. |
 | Default regression count | `tests/run_all.py` remains at 26 checks. |
 
@@ -30,6 +30,7 @@ The pipeline is intentionally fixture-first and review-only. It prepares Markdow
 | #153 | Document the full handoff write-output workflow. |
 | #159 | Clarify generated packet commit decision policy. |
 | #161 | Add the local handoff write dry-run design note. |
+| #164 | Add the handoff chart attachment boundary note. |
 
 ## Canonical write contract
 
@@ -124,6 +125,14 @@ That document is not a runtime implementation. Until a separate implementation P
 
 Any future dry-run implementation should remain read-only and reuse the existing path and guard semantics.
 
+### Chart attachments remain manual and sanitized
+
+`docs/handoff-chart-attachment-boundary.md` documents how chart images, screenshots, and chart sidecar data may be referenced during handoff review.
+
+That document is not a chart capture or chart write implementation. Until a separate implementation PR exists, the runner must not write chart attachments automatically.
+
+Any committed chart material should be manually reviewed, sanitized, and justified in the PR.
+
 ## Validation baseline
 
 Current expected local checks:
@@ -150,14 +159,15 @@ git status --short: tracked files clean after commit; existing untracked fixture
 Prefer these future slices before any live integration:
 
 1. Add an explicit generated-packet fixture review note if a real handoff packet needs human review.
-2. Add chart attachment documentation before adding any chart write behavior.
-3. Implement the local dry-run behavior only after a separate code issue, keeping it read-only and fixture-only.
+2. Implement the local dry-run behavior only after a separate code issue, keeping it read-only and fixture-only.
+3. Add chart attachment behavior only after a separate code issue, keeping attachment creation opt-in and local-only.
 4. Add live Discord/Kiwoom/OpenAI integration only after a separate boundary audit and opt-in configuration design.
 
 Already completed docs-only slices:
 
 - generated packet commit decision policy (#159);
-- local dry-run design note (#161).
+- local dry-run design note (#161);
+- chart attachment boundary note (#164).
 
 Avoid combining live integration, file persistence, chart handling, and trading logic in one PR.
 
@@ -166,6 +176,7 @@ Avoid combining live integration, file persistence, chart handling, and trading 
 - `docs/full-handoff-write-output-usage.md`
 - `docs/handoff-docs-index.md`
 - `docs/local-handoff-write-dry-run-design.md`
+- `docs/handoff-chart-attachment-boundary.md`
 - `handoff/README.md`
 - `docs/chatgpt-handoff-packet-contract.md`
 - `docs/handoff-guardrail-test-coverage.md`
