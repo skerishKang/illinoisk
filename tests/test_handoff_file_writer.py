@@ -17,9 +17,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from handoff_file_writer import (  # noqa: E402
     DEFAULT_FILENAME_FALLBACK,
+    HandoffPacketWriteError,
     build_handoff_packet_path,
     ensure_can_write_packet,
     sanitize_filename_component,
+    write_handoff_packet,
 )
 
 
@@ -370,6 +372,133 @@ def test_ensure_can_write_packet_denies_when_parent_missing():
     return True
 
 
+def test_write_handoff_packet_writes_new_file_with_utf8_content():
+    """parent가 있는 tempdir에서 새 파일을 UTF-8로 쓰고, 한글/특수문자 round-trip 확인.
+
+    테스트는 tempdir 외 다른 경로를 건드리지 않는다 (실제 repo ``handoff/``는
+    사용하지 않음).
+    """
+    print("\n테스트 9: write_handoff_packet — 새 파일 write + UTF-8 round-trip")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        date_dir = Path(tmp) / "2026-06-13"
+        date_dir.mkdir()
+        packet = date_dir / "1035-HPSP-entry.md"
+
+        korean_content = (
+            "# HPSP signal review\n"
+            "\n"
+            "## User question\n"
+            "\n"
+            "신호 왔어?\n"
+            "\n"
+            "## Snapshot\n"
+            "\n"
+            "차트/지표/외국인/프로그램매매는 unavailable\n"
+            "\n"
+            "- emoji test: ✅ ❌ 🚀\n"
+            "- mixed: HPSP / entry:진입 / 손절:stop\n"
+        )
+        result = write_handoff_packet(packet, korean_content)
+        assert result == packet, f"반환 path가 입력과 다름: {result!r}"
+        assert packet.is_file(), f"파일이 생성되지 않음: {packet!r}"
+
+        roundtrip = packet.read_text(encoding="utf-8")
+        assert roundtrip == korean_content, (
+            "UTF-8 한글/이모지/특수문자 round-trip 실패"
+        )
+        assert "신호 왔어?" in roundtrip, "한글 본문이 보존되지 않음"
+        assert "✅" in roundtrip, "이모지가 보존되지 않음"
+
+    print("  ✓ 새 파일 write + 한글/이모지/특수문자 round-trip 확인")
+    return True
+
+
+def test_write_handoff_packet_denies_existing_file_unless_overwrite():
+    """파일이 이미 있으면 ``overwrite=False``에서 ``HandoffPacketWriteError``."""
+    print("\n테스트 10: write_handoff_packet — existing file overwrite=False 거부")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        packet = Path(tmp) / "1035-HPSP-entry.md"
+        packet.write_text("original", encoding="utf-8")
+
+        try:
+            write_handoff_packet(packet, "new content", overwrite=False)
+        except HandoffPacketWriteError as e:
+            assert "reason=exists" in str(e), (
+                f"예외 메시지에 reason=exists가 없음: {e!r}"
+            )
+        else:
+            raise AssertionError(
+                "기존 파일에 overwrite=False인데 예외가 발생하지 않음"
+            )
+
+        assert packet.read_text(encoding="utf-8") == "original", (
+            "거부됐는데 파일 내용이 바뀜 (덮어쓰기 leak)"
+        )
+
+    print("  ✓ overwrite=False → HandoffPacketWriteError + 파일 unchanged")
+    return True
+
+
+def test_write_handoff_packet_overwrite_true_replaces_content():
+    """``overwrite=True``면 기존 파일 내용이 새 content로 완전히 교체된다."""
+    print("\n테스트 11: write_handoff_packet — overwrite=True replace")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        packet = Path(tmp) / "1035-HPSP-entry.md"
+        original = "# old version\n\nold body"
+        packet.write_text(original, encoding="utf-8")
+
+        new_content = "# new version\n\n신호 — 진입 가능?"
+        result = write_handoff_packet(packet, new_content, overwrite=True)
+        assert result == packet, f"반환 path가 입력과 다름: {result!r}"
+
+        replaced = packet.read_text(encoding="utf-8")
+        assert replaced == new_content, (
+            f"overwrite=True인데 내용이 교체되지 않음: got={replaced!r}"
+        )
+        assert "old version" not in replaced, "이전 내용이 잔존"
+        assert "old body" not in replaced, "이전 본문이 잔존"
+        assert "신호" in replaced, "한글 새 본문이 저장되지 않음"
+
+    print("  ✓ overwrite=True → content 완전 교체 (한글 포함) 확인")
+    return True
+
+
+def test_write_handoff_packet_raises_when_parent_missing():
+    """부모 디렉토리가 없으면 ``HandoffPacketWriteError`` (reason=parent_missing)."""
+    print("\n테스트 12: write_handoff_packet — parent_missing 예외")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        missing_parent = Path(tmp) / "no-such-dir" / "1035-HPSP-entry.md"
+
+        try:
+            write_handoff_packet(missing_parent, "anything")
+        except HandoffPacketWriteError as e:
+            assert "reason=parent_missing" in str(e), (
+                f"예외 메시지에 reason=parent_missing이 없음: {e!r}"
+            )
+        else:
+            raise AssertionError("없는 부모 경로인데 예외가 발생하지 않음")
+
+        assert not missing_parent.exists(), (
+            "거부됐는데 파일/디렉토리가 생성됨 (leak)"
+        )
+
+        try:
+            write_handoff_packet(missing_parent, "anything", overwrite=True)
+        except HandoffPacketWriteError as e:
+            assert "reason=parent_missing" in str(e), (
+                f"overwrite=True도 parent_missing reason이어야 함: {e!r}"
+            )
+        else:
+            raise AssertionError("overwrite=True도 parent_missing이어야 하는데 통과")
+
+    print("  ✓ parent_missing → HandoffPacketWriteError + 파일 leak 없음")
+    return True
+
+
 def run_all_tests():
     """모든 테스트 실행."""
     print("=" * 60)
@@ -385,6 +514,10 @@ def run_all_tests():
         test_ensure_can_write_packet_allows_when_path_does_not_exist,
         test_ensure_can_write_packet_denies_existing_unless_overwrite,
         test_ensure_can_write_packet_denies_when_parent_missing,
+        test_write_handoff_packet_writes_new_file_with_utf8_content,
+        test_write_handoff_packet_denies_existing_file_unless_overwrite,
+        test_write_handoff_packet_overwrite_true_replaces_content,
+        test_write_handoff_packet_raises_when_parent_missing,
     ]
 
     passed = 0
