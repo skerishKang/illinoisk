@@ -18,6 +18,7 @@ future edit에도 의미를 잃지 않도록 table-driven으로 잠근다.
 추가 검증:
   - unknown scenario는 명확한 stderr + non-zero exit code로 거부
   - --list-scenarios 출력은 deterministic(sorted) 3개 시나리오 이름
+  - --summary-scenarios 출력은 deterministic(sorted) compact route table
 
 실행:
   python3 tests/test_run_quick_handoff_fixture.py
@@ -33,7 +34,7 @@ RUNNER = BASE / "scripts" / "run_quick_handoff_fixture.py"
 # Scenario catalog table (Issue #128)
 # ---------------------------------------------------------------------------
 # 각 row는 scripts/run_quick_handoff_fixture.py의 한 scenario에 대응하며,
-# packet이 stdout에 포함해야 할 7개 route 속성과 그 직렬화 값을 정의한다.
+# packet이 stdout에 포함해야 할 route 속성과 그 직렬화 값을 정의한다.
 #
 # used_active_symbol은 _format_value()가 bool을 직렬화한 결과("true"/"false")로
 # 기록한다.
@@ -76,6 +77,16 @@ COMMON_PACKET_SECTIONS = [
     "## Required response format",
 ]
 
+SUMMARY_TABLE_COLUMNS = [
+    "scenario",
+    "symbol",
+    "user_question",
+    "intent",
+    "triggers",
+    "reply_mode",
+    "used_active_symbol",
+]
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -100,6 +111,16 @@ def _run_list_scenarios() -> subprocess.CompletedProcess:
     )
 
 
+def _run_summary_scenarios() -> subprocess.CompletedProcess:
+    """--summary-scenarios 플래그로 runner를 subprocess 호출한다."""
+    return subprocess.run(
+        [sys.executable, str(RUNNER), "--summary-scenarios"],
+        capture_output=True,
+        text=True,
+        cwd=str(BASE),
+    )
+
+
 def _run_all_scenarios() -> subprocess.CompletedProcess:
     """--all-scenarios 플래그로 runner를 subprocess 호출한다."""
     return subprocess.run(
@@ -111,7 +132,7 @@ def _run_all_scenarios() -> subprocess.CompletedProcess:
 
 
 def _build_route_patterns(row: dict) -> list[str]:
-    """table row 하나를 packet에 있어야 할 7개 route pattern 리스트로 변환한다."""
+    """table row 하나를 packet에 있어야 할 route pattern 리스트로 변환한다."""
     return [
         f"- Symbol: {row['symbol']}",
         f"- User question: {row['user_question']}",
@@ -122,11 +143,24 @@ def _build_route_patterns(row: dict) -> list[str]:
     ]
 
 
+def _build_summary_patterns(row: dict) -> list[str]:
+    """table row 하나를 summary stdout에 있어야 할 compact field 리스트로 변환한다."""
+    return [
+        row["name"],
+        row["symbol"],
+        row["user_question"],
+        row["intent"],
+        row["trigger"],
+        row["reply_mode"],
+        row["used_active_symbol"],
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Table-driven regression (Issue #128)
 # ---------------------------------------------------------------------------
 def test_scenario_catalog_table_driven_assertions():
-    """3개 scenario의 7개 route 속성과 6개 공통 packet 섹션을 table-driven으로 검증."""
+    """3개 scenario의 route 속성과 6개 공통 packet 섹션을 table-driven으로 검증."""
     print(f"\n테스트 1: scenario catalog table-driven 회귀 ({len(EXPECTED_SCENARIOS)}개 시나리오)")
 
     for row in EXPECTED_SCENARIOS:
@@ -139,7 +173,7 @@ def test_scenario_catalog_table_driven_assertions():
         )
         out = result.stdout
 
-        # 7개 route 속성
+        # route 속성
         route_patterns = _build_route_patterns(row)
         missing_routes = [p for p in route_patterns if p not in out]
         assert not missing_routes, (
@@ -157,7 +191,8 @@ def test_scenario_catalog_table_driven_assertions():
         )
 
         print(
-            f"  ✓ {name}: 7개 route 속성 + {len(COMMON_PACKET_SECTIONS)}개 공통 섹션 모두 통과"
+            f"  ✓ {name}: {len(route_patterns)}개 route 속성 + "
+            f"{len(COMMON_PACKET_SECTIONS)}개 공통 섹션 모두 통과"
         )
 
     return True
@@ -218,9 +253,58 @@ def test_list_scenarios_is_deterministic_and_sorted():
     return True
 
 
+def test_summary_scenarios_reports_route_table_in_sorted_order():
+    """--summary-scenarios는 sorted 순서로 compact route summary table을 stdout에 출력한다."""
+    print("\n테스트 4: --summary-scenarios — sorted compact route table")
+    result = _run_summary_scenarios()
+
+    assert result.returncode == 0, (
+        f"runner exit code {result.returncode} (expected 0); "
+        f"stderr:\n{result.stderr}"
+    )
+    assert not result.stderr, (
+        f"stderr에 예기치 않은 에러 출력: {result.stderr!r}"
+    )
+
+    out = result.stdout
+    assert "Scenario summary:" in out, f"summary title 누락\n--- full stdout ---\n{out}"
+
+    for column in SUMMARY_TABLE_COLUMNS:
+        assert column in out, f"summary column 누락: {column}\n--- full stdout ---\n{out}"
+
+    scenario_names = [row["name"] for row in EXPECTED_SCENARIOS]
+    expected_order = sorted(scenario_names)
+    positions = [out.index(name) for name in expected_order]
+    assert positions == sorted(positions), (
+        f"summary row 순서가 sorted 아님: positions={positions} "
+        f"(expected non-decreasing), expected_order={expected_order}"
+    )
+
+    for row in EXPECTED_SCENARIOS:
+        for pattern in _build_summary_patterns(row):
+            assert pattern in out, (
+                f"[{row['name']}] summary field 누락: {pattern}\n"
+                f"--- full stdout ---\n{out}"
+            )
+
+    # summary mode는 full packet 출력 모드가 아니어야 한다.
+    for section in COMMON_PACKET_SECTIONS:
+        assert section not in out, (
+            f"summary stdout에 full packet section이 섞임: {section}\n"
+            f"--- full stdout ---\n{out}"
+        )
+
+    print(f"  ✓ summary title + {len(SUMMARY_TABLE_COLUMNS)}개 column 포함")
+    print(f"  ✓ 3개 summary row sorted 순서 확인: {expected_order}")
+    print(f"  ✓ 3개 시나리오 × 7개 compact field 검증 모두 통과")
+    print("  ✓ full packet section 미출력 확인")
+
+    return True
+
+
 def test_all_scenarios_runs_all_in_sorted_order():
     """--all-scenarios는 sorted 순서로 3개 scenario packet + header를 stdout에 출력한다."""
-    print("\n테스트 4: --all-scenarios — sorted order, 모든 packet 검증")
+    print("\n테스트 5: --all-scenarios — sorted order, 모든 packet 검증")
     result = _run_all_scenarios()
 
     # 1) exit code 0
@@ -285,6 +369,7 @@ def run_all_tests():
         test_scenario_catalog_table_driven_assertions,
         test_unknown_scenario_reports_error_and_exits_nonzero,
         test_list_scenarios_is_deterministic_and_sorted,
+        test_summary_scenarios_reports_route_table_in_sorted_order,
         test_all_scenarios_runs_all_in_sorted_order,
     ]
 
